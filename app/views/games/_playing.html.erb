@@ -1,0 +1,98 @@
+<div class="flex-1 flex flex-col px-4 py-6">
+  <!-- Header com info da rodada -->
+  <div class="text-center mb-6">
+    <div class="inline-flex items-center gap-2 bg-slate-800/50 rounded-full px-4 py-2 mb-3">
+      <span class="text-slate-400 text-sm">Rodada</span>
+      <span class="font-display text-xl font-bold text-amber-400"><%= game.current_round %>/<%= game.total_rounds %></span>
+    </div>
+
+    <!-- Cronômetro -->
+    <div
+      data-controller="timer"
+      data-timer-seconds-value="<%= game.time_remaining %>"
+      data-timer-game-id-value="<%= game.id %>"
+      data-timer-expired-url-value="<%= timer_expired_game_path(game) %>"
+      class="mb-4"
+    >
+      <div class="font-display text-5xl font-black text-white" data-timer-target="display">
+        <%= "%02d:%02d" % [game.time_remaining / 60, game.time_remaining % 60] %>
+      </div>
+      <p class="text-slate-400 text-sm mt-1">Tempo restante para conversar</p>
+    </div>
+
+    <!-- Sala atual -->
+    <div class="inline-flex items-center gap-2 bg-slate-700/50 rounded-xl px-4 py-2">
+      <span class="text-2xl">🚪</span>
+      <span class="font-semibold text-white">Sala <%= player.room %></span>
+      <span class="text-slate-400 text-sm">(<%= game.players.where(room: player.room).count %> jogadores)</span>
+    </div>
+  </div>
+
+  <!-- Card do papel -->
+  <div class="flex-1 flex flex-col items-center justify-center mb-6">
+    <div
+      id="player-card"
+      class="card-flip w-72 h-96 cursor-pointer"
+      onclick="this.classList.toggle('flipped')"
+    >
+      <div class="card-flip-inner relative w-full h-full">
+        <!-- Frente (escondido) -->
+        <div class="card-front absolute inset-0 bg-gradient-to-br from-slate-700 to-slate-800 rounded-3xl border-4 border-slate-600 flex flex-col items-center justify-center shadow-2xl">
+          <div class="text-6xl mb-4">🎴</div>
+          <p class="text-slate-400 font-semibold">Toque para ver seu papel</p>
+          <p class="text-slate-500 text-sm mt-2">Cuidado com quem está olhando!</p>
+        </div>
+
+        <!-- Verso (revelado) -->
+        <div class="card-back absolute inset-0 rounded-3xl border-4 flex flex-col items-center justify-center p-6 shadow-2xl
+          <%= player.team == 'blue' ? 'bg-gradient-to-br from-blue-900 to-blue-950 border-blue-500 glow-blue' : 'bg-gradient-to-br from-red-900 to-red-950 border-red-500 glow-red' %>">
+
+          <!-- Ícone do papel -->
+          <div class="text-7xl mb-4"><%= player.role_icon %></div>
+
+          <!-- Nome do papel -->
+          <h2 class="font-display text-2xl font-black text-white mb-1">
+            <%= player.role_name %>
+          </h2>
+
+          <!-- Time -->
+          <div class="inline-flex items-center gap-1 px-3 py-1 rounded-full text-sm font-bold mb-4
+            <%= player.team == 'blue' ? 'bg-blue-500/30 text-blue-300' : 'bg-red-500/30 text-red-300' %>">
+            Time <%= player.team_name %>
+          </div>
+
+          <!-- Descrição -->
+          <p class="text-center text-sm text-slate-300 mb-4">
+            <%= player.role_description %>
+          </p>
+
+          <!-- Missão -->
+          <div class="bg-black/30 rounded-xl p-3 text-center">
+            <p class="text-xs text-slate-300">
+              <%= player.team_mission %>
+            </p>
+          </div>
+
+          <p class="text-slate-500 text-xs mt-4">Toque para esconder</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Lista de jogadores na sala -->
+  <div class="bg-slate-800/30 rounded-xl p-4 mb-20">
+    <h3 class="text-sm font-semibold text-slate-400 mb-3 uppercase">Jogadores na sua sala</h3>
+    <div class="flex flex-wrap gap-2">
+      <% game.players.where(room: player.room).each do |p| %>
+        <span class="inline-flex items-center gap-1 bg-slate-700/50 rounded-full px-3 py-1 text-sm
+          <%= p.id == player.id ? 'border border-amber-500/50 text-amber-300' : 'text-white' %>">
+          <%= p.name %>
+          <% if p.id == player.id %>
+            <span class="text-xs text-amber-400">(você)</span>
+          <% end %>
+        </span>
+      <% end %>
+    </div>
+  </div>
+</div>
+

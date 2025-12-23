@@ -1,0 +1,73 @@
+<!-- Modal de Regras -->
+<div id="rules-modal" class="hidden fixed inset-0 z-50 flex items-end justify-center" data-controller="modal">
+  <div
+    class="absolute inset-0 bg-black/70 backdrop-blur-sm"
+    data-action="click->modal#closeBackground"
+  ></div>
+
+  <div class="relative w-full max-w-lg bg-slate-800 rounded-t-3xl p-6 pb-10 max-h-[85vh] overflow-y-auto slide-up">
+    <div class="flex justify-between items-center mb-6">
+      <h2 class="font-display text-2xl font-bold text-amber-400">📖 Regras do Jogo</h2>
+      <button
+        type="button"
+        data-action="click->modal#close"
+        class="text-slate-400 hover:text-white text-2xl"
+      >✕</button>
+    </div>
+
+    <div class="space-y-6 text-slate-300">
+      <section>
+        <h3 class="text-lg font-bold text-white mb-2">🎯 Objetivo</h3>
+        <p>
+          Os jogadores são divididos em dois times: <span class="text-blue-400 font-semibold">Azul</span> e <span class="text-red-400 font-semibold">Vermelho</span>.
+        </p>
+        <ul class="list-disc list-inside mt-2 space-y-1 text-sm">
+          <li><span class="text-blue-400">Time Azul:</span> Proteger o Presidente. Ele NÃO pode estar na mesma sala que a Bomba no final.</li>
+          <li><span class="text-red-400">Time Vermelho:</span> A Bomba deve estar na mesma sala que o Presidente no final do jogo.</li>
+        </ul>
+      </section>
+
+      <section>
+        <h3 class="text-lg font-bold text-white mb-2">🏠 As Duas Salas</h3>
+        <p class="text-sm">
+          Os jogadores são divididos aleatoriamente em duas salas. Durante o jogo, os jogadores conversam, negociam e tentam descobrir quem é quem.
+        </p>
+      </section>
+
+      <section>
+        <h3 class="text-lg font-bold text-white mb-2">⏱️ Rodadas</h3>
+        <p class="text-sm">
+          Cada rodada tem um tempo limite. Quando o tempo acaba, cada sala elege um <strong class="text-amber-400">Líder</strong> que escolherá os reféns para trocar com a outra sala.
+        </p>
+      </section>
+
+      <section>
+        <h3 class="text-lg font-bold text-white mb-2">🔄 Troca de Reféns</h3>
+        <p class="text-sm">
+          Os líderes escolhem jogadores da sua sala para enviar à outra sala. A quantidade de reféns diminui a cada rodada.
+        </p>
+      </section>
+
+      <section>
+        <h3 class="text-lg font-bold text-white mb-2">💥 Fim do Jogo</h3>
+        <p class="text-sm">
+          Após a última rodada, verifica-se se o <span class="text-blue-400 font-semibold">Presidente</span> 👔 e a <span class="text-red-400 font-semibold">Bomba</span> 💣 estão na mesma sala:
+        </p>
+        <ul class="list-disc list-inside mt-2 space-y-1 text-sm">
+          <li><strong>Mesma sala:</strong> Time Vermelho vence! 💥</li>
+          <li><strong>Salas diferentes:</strong> Time Azul vence! 🛡️</li>
+        </ul>
+      </section>
+
+      <section>
+        <h3 class="text-lg font-bold text-white mb-2">💡 Dicas</h3>
+        <ul class="list-disc list-inside space-y-1 text-sm">
+          <li>Você pode mostrar sua carta para outros jogadores (ou mentir!)</li>
+          <li>Tente descobrir a identidade dos outros através de conversas</li>
+          <li>O líder tem grande poder - escolha bem!</li>
+          <li>Reféns podem mudar tudo no final do jogo</li>
+        </ul>
+      </section>
+    </div>
+  </div>
+</div>

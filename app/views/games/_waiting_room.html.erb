@@ -1,0 +1,92 @@
+<div class="flex-1 flex flex-col px-6 py-8">
+  <!-- Header com código -->
+  <div class="text-center mb-8">
+    <p class="text-slate-400 text-sm uppercase tracking-wide mb-2">Código da Sala</p>
+    <div class="inline-block bg-slate-800/50 border-2 border-amber-500/50 rounded-xl px-6 py-3">
+      <span class="font-display text-3xl font-bold text-amber-400 tracking-[0.3em]"><%= game.code %></span>
+    </div>
+    <p class="text-slate-500 text-sm mt-3">Compartilhe este código com seus amigos</p>
+  </div>
+
+  <!-- Lista de jogadores -->
+  <div class="flex-1">
+    <div class="flex items-center justify-between mb-4">
+      <h2 class="text-lg font-bold text-white">Jogadores (<%= game.players.count %>)</h2>
+      <% if game.players.count < 4 %>
+        <span class="text-amber-400 text-sm">Mínimo: 4</span>
+      <% else %>
+        <span class="text-green-400 text-sm">✓ Pronto para começar!</span>
+      <% end %>
+    </div>
+
+    <div class="space-y-2 mb-6">
+      <% game.players.order(:created_at).each do |p| %>
+        <div class="flex items-center gap-3 bg-slate-800/30 rounded-xl px-4 py-3 <%= p.id == player.id ? 'border-2 border-amber-500/50' : '' %>">
+          <div class="w-10 h-10 rounded-full bg-gradient-to-br from-slate-600 to-slate-700 flex items-center justify-center text-lg">
+            <%= p.name.chars.first.upcase %>
+          </div>
+          <div class="flex-1">
+            <p class="font-semibold text-white">
+              <%= p.name %>
+              <% if p.id == player.id %>
+                <span class="text-amber-400 text-sm">(você)</span>
+              <% end %>
+            </p>
+          </div>
+          <% if p.is_creator %>
+            <span class="text-amber-400 text-sm">👑 Host</span>
+          <% end %>
+        </div>
+      <% end %>
+    </div>
+  </div>
+
+  <!-- Configurações do jogo -->
+  <div class="bg-slate-800/30 rounded-xl p-4 mb-6">
+    <h3 class="text-sm font-semibold text-slate-400 mb-3 uppercase">Configurações</h3>
+    <div class="grid grid-cols-2 gap-4 text-sm">
+      <div>
+        <span class="text-slate-500">Tempo por rodada:</span>
+        <span class="text-white font-semibold ml-1"><%= game.round_time / 60 %> min</span>
+      </div>
+      <div>
+        <span class="text-slate-500">Rodadas:</span>
+        <span class="text-white font-semibold ml-1">
+          <% if game.total_rounds == 0 %>
+            Auto
+          <% else %>
+            <%= game.total_rounds %>
+          <% end %>
+        </span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Ações -->
+  <div class="space-y-3 pb-16">
+    <% if player.is_creator %>
+      <% if game.can_start? %>
+        <%= button_to start_game_path(game), method: :post, class: "w-full py-4 bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-400 hover:to-emerald-400 text-white font-bold text-lg rounded-xl transition-all transform hover:scale-105 active:scale-95 shadow-lg" do %>
+          🎮 Iniciar Jogo
+        <% end %>
+      <% else %>
+        <button disabled class="w-full py-4 bg-slate-700 text-slate-400 font-bold text-lg rounded-xl cursor-not-allowed">
+          Aguardando jogadores...
+        </button>
+      <% end %>
+    <% else %>
+      <div class="text-center py-4 text-slate-400">
+        <div class="animate-pulse">⏳</div>
+        <p class="mt-2">Aguardando o host iniciar o jogo...</p>
+      </div>
+    <% end %>
+
+    <%= button_to leave_game_path(game), method: :delete, data: { turbo_confirm: "Tem certeza que deseja sair?" }, class: "w-full py-3 text-red-400 hover:text-red-300 font-semibold transition-colors" do %>
+      Sair da Sala
+    <% end %>
+  </div>
+</div>
+
+<!-- Auto-refresh para atualizar lista de jogadores -->
+<div data-controller="refresh" data-refresh-interval-value="3000" data-refresh-url-value="<%= game_path(game) %>"></div>
+

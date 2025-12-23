@@ -1,0 +1,35 @@
+<% player ||= current_player %>
+
+<% case game.status %>
+<% when 'waiting' %>
+  <%= render 'games/waiting_room', game: game, player: player %>
+<% when 'playing' %>
+  <%= render 'games/playing', game: game, player: player %>
+<% when 'leader_selection' %>
+  <%= render 'games/leader_selection', game: game, player: player %>
+<% when 'hostage_exchange' %>
+  <%= render 'games/hostage_exchange', game: game, player: player %>
+<% when 'finished' %>
+  <%= render 'games/finished', game: game, player: player %>
+<% end %>
+
+<!-- Botões de informação fixos -->
+<div class="fixed bottom-6 left-4 right-4 flex justify-between pointer-events-none" data-controller="modal">
+  <button
+    type="button"
+    data-action="click->modal#open"
+    data-modal-id="rules-modal"
+    class="pointer-events-auto px-3 py-2 bg-slate-700/80 backdrop-blur-sm rounded-full text-slate-300 text-xs font-semibold hover:bg-slate-600/80 transition-all"
+  >
+    📖 Regras
+  </button>
+
+  <button
+    type="button"
+    data-action="click->modal#open"
+    data-modal-id="characters-modal"
+    class="pointer-events-auto px-3 py-2 bg-slate-700/80 backdrop-blur-sm rounded-full text-slate-300 text-xs font-semibold hover:bg-slate-600/80 transition-all"
+  >
+    🎭 Personagens
+  </button>
+</div>

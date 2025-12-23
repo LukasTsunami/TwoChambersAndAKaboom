@@ -1,0 +1,54 @@
+<div class="flex-1 flex flex-col items-center justify-center px-6 py-12">
+  <!-- Header -->
+  <div class="text-center mb-8">
+    <div class="text-5xl mb-4">🏠</div>
+    <h1 class="font-display text-2xl font-bold text-white mb-2">Criar Nova Sala</h1>
+    <p class="text-slate-400">Configure as opções do jogo</p>
+  </div>
+
+  <!-- Formulário -->
+  <div class="w-full max-w-sm">
+    <%= form_with model: @game, url: games_path, method: :post, class: "space-y-6" do |f| %>
+      <div>
+        <label class="block text-slate-300 text-sm font-semibold mb-2 uppercase tracking-wide">
+          ⏱️ Tempo por Rodada
+        </label>
+        <select name="game[round_time]" class="w-full px-5 py-4 bg-slate-800/50 border-2 border-slate-600 rounded-xl text-white text-lg font-semibold focus:outline-none focus:border-amber-400 transition-all">
+          <option value="60">1 minuto</option>
+          <option value="120">2 minutos</option>
+          <option value="180" selected>3 minutos</option>
+          <option value="240">4 minutos</option>
+          <option value="300">5 minutos</option>
+        </select>
+      </div>
+
+      <div>
+        <label class="block text-slate-300 text-sm font-semibold mb-2 uppercase tracking-wide">
+          🔄 Número de Rodadas
+        </label>
+        <select name="game[total_rounds]" class="w-full px-5 py-4 bg-slate-800/50 border-2 border-slate-600 rounded-xl text-white text-lg font-semibold focus:outline-none focus:border-amber-400 transition-all">
+          <option value="0">Automático (baseado em jogadores)</option>
+          <option value="1">1 rodada</option>
+          <option value="2">2 rodadas</option>
+          <option value="3" selected>3 rodadas</option>
+          <option value="4">4 rodadas</option>
+          <option value="5">5 rodadas</option>
+        </select>
+        <p class="text-slate-500 text-sm mt-2">
+          💡 Automático segue as regras oficiais baseadas na quantidade de jogadores
+        </p>
+      </div>
+
+      <div class="pt-4 space-y-3">
+        <button type="submit" class="w-full py-4 bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-400 hover:to-orange-400 text-slate-900 font-bold text-lg rounded-xl transition-all transform hover:scale-105 active:scale-95 shadow-lg">
+          🚀 Criar Sala
+        </button>
+
+        <%= link_to root_path, class: "block w-full py-3 text-center text-slate-400 hover:text-white transition-colors" do %>
+          ← Voltar
+        <% end %>
+      </div>
+    <% end %>
+  </div>
+</div>
+

@@ -1,0 +1,99 @@
+<div class="flex-1 flex flex-col px-4 py-6">
+  <!-- Header -->
+  <div class="text-center mb-6">
+    <div class="inline-flex items-center gap-2 bg-amber-500/20 rounded-full px-4 py-2 mb-3">
+      <span class="text-2xl">👑</span>
+      <span class="font-display text-lg font-bold text-amber-400">Seleção de Líder</span>
+    </div>
+    <p class="text-slate-400">Escolham o líder da Sala <%= player.room %></p>
+  </div>
+
+  <!-- Líder atual da sala -->
+  <% room_leader = player.room == 1 ? game.room_1_leader : game.room_2_leader %>
+  <% if room_leader %>
+    <div class="bg-amber-500/10 border border-amber-500/30 rounded-xl p-4 mb-6 text-center">
+      <p class="text-amber-400 text-sm mb-1">Líder selecionado:</p>
+      <p class="text-xl font-bold text-white">👑 <%= room_leader.name %></p>
+      <% if room_leader.id == player.id %>
+        <p class="text-amber-300 text-sm mt-1">(você)</p>
+      <% end %>
+    </div>
+  <% end %>
+
+  <!-- Status das salas -->
+  <div class="grid grid-cols-2 gap-4 mb-6">
+    <div class="bg-slate-800/30 rounded-xl p-3 text-center">
+      <p class="text-slate-400 text-sm">Sala 1</p>
+      <% if game.room_1_leader %>
+        <p class="text-green-400 font-semibold">✓ Líder escolhido</p>
+      <% else %>
+        <p class="text-amber-400 font-semibold pulse-animation">Escolhendo...</p>
+      <% end %>
+    </div>
+    <div class="bg-slate-800/30 rounded-xl p-3 text-center">
+      <p class="text-slate-400 text-sm">Sala 2</p>
+      <% if game.room_2_leader %>
+        <p class="text-green-400 font-semibold">✓ Líder escolhido</p>
+      <% else %>
+        <p class="text-amber-400 font-semibold pulse-animation">Escolhendo...</p>
+      <% end %>
+    </div>
+  </div>
+
+  <!-- Card do papel (mini) -->
+  <div class="flex justify-center mb-6">
+    <div
+      id="player-card-mini"
+      class="card-flip w-24 h-32 cursor-pointer"
+      onclick="this.classList.toggle('flipped')"
+    >
+      <div class="card-flip-inner relative w-full h-full">
+        <div class="card-front absolute inset-0 bg-gradient-to-br from-slate-700 to-slate-800 rounded-xl border-2 border-slate-600 flex items-center justify-center">
+          <span class="text-2xl">🎴</span>
+        </div>
+        <div class="card-back absolute inset-0 rounded-xl border-2 flex flex-col items-center justify-center
+          <%= player.team == 'blue' ? 'bg-gradient-to-br from-blue-900 to-blue-950 border-blue-500' : 'bg-gradient-to-br from-red-900 to-red-950 border-red-500' %>">
+          <span class="text-3xl"><%= player.role_icon %></span>
+          <span class="text-xs text-white mt-1"><%= player.role_name %></span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Lista de jogadores para selecionar -->
+  <div class="flex-1">
+    <h3 class="text-sm font-semibold text-slate-400 mb-3 uppercase">Escolha o líder da sua sala</h3>
+
+    <div class="space-y-2 mb-20">
+      <% game.players.where(room: player.room).each do |p| %>
+        <%= form_with url: select_leader_game_path(game), method: :post, class: "block" do %>
+          <input type="hidden" name="leader_id" value="<%= p.id %>">
+          <button type="submit" class="w-full flex items-center gap-3 bg-slate-800/30 hover:bg-slate-700/50 rounded-xl px-4 py-3 transition-all
+            <%= p.is_leader ? 'border-2 border-amber-500' : 'border border-transparent' %>">
+            <div class="w-10 h-10 rounded-full bg-gradient-to-br from-slate-600 to-slate-700 flex items-center justify-center text-lg">
+              <% if p.is_leader %>
+                👑
+              <% else %>
+                <%= p.name.chars.first.upcase %>
+              <% end %>
+            </div>
+            <div class="flex-1 text-left">
+              <p class="font-semibold text-white">
+                <%= p.name %>
+                <% if p.id == player.id %>
+                  <span class="text-amber-400 text-sm">(você)</span>
+                <% end %>
+              </p>
+            </div>
+            <% if p.is_leader %>
+              <span class="text-amber-400 text-sm font-semibold">Líder</span>
+            <% else %>
+              <span class="text-slate-500 text-sm">Votar</span>
+            <% end %>
+          </button>
+        <% end %>
+      <% end %>
+    </div>
+  </div>
+</div>
+
