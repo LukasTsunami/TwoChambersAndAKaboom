@@ -1,4 +1,4 @@
-# 💣 Two Rooms and a Boom
+# 💣 Two Chambers and a Kaboom
 
 Um jogo de dedução social para dispositivos móveis, desenvolvido em Ruby on Rails 8 com Turbo e Hotwire.
 
@@ -10,7 +10,7 @@ Um jogo de dedução social para dispositivos móveis, desenvolvido em Ruby on R
 
 ## 🎮 Sobre o Jogo
 
-**Two Rooms and a Boom** é um jogo de festa onde os jogadores são divididos em dois times (Azul e Vermelho) e separados em duas salas. O objetivo varia de acordo com o time:
+**Two Chambers and a Kaboom** é um jogo de festa onde os jogadores são divididos em dois times (Azul e Vermelho) e separados em duas salas. O objetivo varia de acordo com o time:
 
 - 🔵 **Time Azul:** Manter o Presidente longe do Bombardeiro
 - 🔴 **Time Vermelho:** Fazer o Bombardeiro ficar na mesma sala que o Presidente
@@ -160,7 +160,7 @@ Contribuições são bem-vindas! Sinta-se à vontade para abrir issues e pull re
 
 ## 📄 Licença
 
-Este projeto é apenas para fins educacionais e de entretenimento. Two Rooms and a Boom é um jogo criado pela Tuesday Knight Games.
+Este projeto é apenas para fins educacionais e de entretenimento. Two Chambers and a Kaboom é um jogo criado pela Tuesday Knight Games.
 
 ---
 

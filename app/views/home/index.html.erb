@@ -1,5 +1,4 @@
 <% 
-  # Parâmetros para preencher campos quando usuário já existe
   prefill_name = params[:name].to_s
   prefill_mode = params[:mode].to_s
   prefill_action = params[:action_type].to_s
@@ -10,18 +9,16 @@
      data-multistep-prefill-name-value="<%= prefill_name %>"
      data-multistep-prefill-mode-value="<%= prefill_mode %>">
   
-  <!-- Logo / Título -->
   <div class="text-center mb-8">
     <div class="text-6xl mb-4">💣</div>
     <h1 class="font-display text-3xl font-black tracking-wider text-white mb-2">
-      TWO ROOMS
+      TWO CHAMBERS
     </h1>
     <h2 class="font-display text-2xl font-bold text-amber-400">
-      AND A BOOM
+      AND A KABOOM
     </h2>
   </div>
 
-  <!-- Step Indicators -->
   <div class="flex items-center gap-3 mb-8">
     <div class="w-8 h-8 rounded-full bg-amber-500 flex items-center justify-center text-slate-900 font-bold text-sm" data-multistep-target="stepIndicator">1</div>
     <div class="w-8 h-1 bg-slate-600 rounded"></div>
@@ -30,12 +27,10 @@
     <div class="w-8 h-8 rounded-full bg-slate-600 flex items-center justify-center text-white font-bold text-sm" data-multistep-target="stepIndicator">3</div>
   </div>
 
-  <!-- Formulário -->
   <div class="w-full max-w-sm">
     <%= form_with url: players_path, method: :post, class: "space-y-5", data: { turbo: false } do |f| %>
       <input type="hidden" name="mode" value="create" data-multistep-target="modeInput">
 
-      <!-- STEP 1: Nome -->
       <div data-multistep-target="step1">
         <div class="text-center mb-6">
           <h3 class="font-display text-xl font-bold text-white mb-2">Como você quer ser chamado?</h3>
@@ -63,7 +58,6 @@
         </button>
       </div>
 
-      <!-- STEP 2: PIN -->
       <div data-multistep-target="step2" class="hidden">
         <div class="text-center mb-6">
           <h3 class="font-display text-xl font-bold text-white mb-2" data-multistep-target="pinTitle">Crie um PIN</h3>
@@ -95,7 +89,6 @@
         </button>
       </div>
 
-      <!-- STEP 3: Criar ou Entrar -->
       <div data-multistep-target="step3" class="hidden">
         <div class="text-center mb-6">
           <h3 class="font-display text-xl font-bold text-white mb-2">O que deseja fazer?</h3>
@@ -104,7 +97,6 @@
           </p>
         </div>
 
-        <!-- Ações normais (sem jogo ativo) -->
         <div class="space-y-4" data-multistep-target="normalActions">
           <button
             type="submit"
@@ -127,7 +119,6 @@
           </button>
         </div>
 
-        <!-- Ação de jogo ativo -->
         <div class="space-y-4 hidden" data-multistep-target="activeGameAction">
           <div class="bg-green-500/10 border border-green-500/30 rounded-xl p-4 text-center mb-4">
             <p class="text-green-400 font-semibold">🎮 Você tem um jogo ativo!</p>
@@ -150,7 +141,6 @@
     <% end %>
   </div>
 
-  <!-- Botão Voltar (fixo no topo) -->
   <button
     type="button"
     data-multistep-target="backBtn"
@@ -160,7 +150,6 @@
     ← Voltar
   </button>
 
-  <!-- Botões de informação -->
   <div class="fixed bottom-6 left-6 right-6 flex justify-between">
     <button
       type="button"
