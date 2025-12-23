@@ -7,6 +7,26 @@ class PlayersController < ApplicationController
     render json: { exists: exists }
   end
 
+  def validate_pin
+    name = params[:name].to_s.strip
+    pin = params[:pin].to_s.strip
+
+    player = Player.find_by(name: name)
+
+    if player.nil?
+      # Novo jogador - PIN será criado
+      render json: { valid: true, new_player: true, has_active_game: false }
+    elsif player.pin == pin
+      # Login válido
+      has_game = player.game.present?
+      game_code = player.game&.code
+      render json: { valid: true, new_player: false, has_active_game: has_game, game_code: game_code }
+    else
+      # PIN incorreto
+      render json: { valid: false, error: "PIN incorreto" }
+    end
+  end
+
   def create
     name = params[:name].to_s.strip
     pin = params[:pin].to_s.strip
@@ -33,7 +53,11 @@ class PlayersController < ApplicationController
 
       session[:player_id] = player.id
 
-      if player.game
+      # Redireciona baseado na ação escolhida
+      if params[:action_type] == 'rejoin' && player.game
+        redirect_to game_path(player.game)
+      elsif player.game
+        # Tem jogo ativo mas escolheu outra ação - redireciona pro jogo mesmo assim
         redirect_to game_path(player.game)
       elsif params[:action_type] == 'create'
         redirect_to new_game_path

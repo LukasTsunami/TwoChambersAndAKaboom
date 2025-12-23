@@ -4,6 +4,7 @@ Rails.application.routes.draw do
   resources :players, only: [:create, :update] do
     collection do
       get :check_name
+      post :validate_pin
     end
   end
 
@@ -18,14 +19,22 @@ Rails.application.routes.draw do
       post :select_leader
       post :select_hostages
       post :exchange
-      delete :leave
+      post :exit_game
+      delete :abandon
+      delete :destroy_room
       post :timer_expired
     end
   end
 
   # Admin routes
-  get 'admin/reset_pin', to: 'admin#reset_pin', as: :admin_reset_pin
-  post 'admin/reset_pin', to: 'admin#do_reset_pin'
+  get 'admin/reset-pin', to: 'admin#reset_pin', as: :admin_reset_pin
+  post 'admin/reset-pin', to: 'admin#do_reset_pin'
+
+  get 'admin/reset-room', to: 'admin#reset_room', as: :admin_reset_room
+  post 'admin/reset-room', to: 'admin#do_reset_room'
+
+  get 'admin/reset-player', to: 'admin#reset_player', as: :admin_reset_player
+  post 'admin/reset-player', to: 'admin#do_reset_player'
 
   # Health check
   get 'up' => 'rails/health#show', as: :rails_health_check

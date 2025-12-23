@@ -92,12 +92,12 @@
     <% end %>
 
     <% if player.is_creator %>
-      <%= button_to leave_game_path(game), method: :delete, data: { turbo_confirm: "Tem certeza que deseja APAGAR a sala? Todos os jogadores serão removidos." }, class: "w-full py-3 text-red-400 hover:text-red-300 font-semibold transition-colors" do %>
+      <%= button_to destroy_room_game_path(game), method: :delete, data: { turbo: false, turbo_confirm: "Tem certeza que deseja APAGAR a sala? Todos os jogadores serão removidos." }, class: "w-full py-3 text-red-400 hover:text-red-300 font-semibold transition-colors" do %>
         🗑️ Apagar Sala
       <% end %>
     <% else %>
-      <%= button_to leave_game_path(game), method: :delete, data: { turbo_confirm: "Tem certeza que deseja sair?" }, class: "w-full py-3 text-red-400 hover:text-red-300 font-semibold transition-colors" do %>
-        Sair da Sala
+      <%= button_to abandon_game_path(game), method: :delete, data: { turbo: false, turbo_confirm: "Tem certeza que deseja abandonar a sala?" }, class: "w-full py-3 text-red-400 hover:text-red-300 font-semibold transition-colors" do %>
+        🏃 Abandonar Sala
       <% end %>
     <% end %>
   </div>

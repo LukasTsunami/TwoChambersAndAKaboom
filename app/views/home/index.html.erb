@@ -104,7 +104,8 @@
           </p>
         </div>
 
-        <div class="space-y-4">
+        <!-- Ações normais (sem jogo ativo) -->
+        <div class="space-y-4" data-multistep-target="normalActions">
           <button
             type="submit"
             name="action_type"
@@ -123,6 +124,26 @@
           >
             <span class="text-2xl">🚪</span>
             <span>Entrar em uma Sala</span>
+          </button>
+        </div>
+
+        <!-- Ação de jogo ativo -->
+        <div class="space-y-4 hidden" data-multistep-target="activeGameAction">
+          <div class="bg-green-500/10 border border-green-500/30 rounded-xl p-4 text-center mb-4">
+            <p class="text-green-400 font-semibold">🎮 Você tem um jogo ativo!</p>
+            <p class="text-slate-400 text-sm mt-1">
+              Sala: <span class="text-white font-mono font-bold" data-multistep-target="gameCodeDisplay"></span>
+            </p>
+          </div>
+
+          <button
+            type="submit"
+            name="action_type"
+            value="rejoin"
+            class="w-full py-5 bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-400 hover:to-emerald-400 text-white font-bold text-lg rounded-xl transition-all transform hover:scale-105 active:scale-95 shadow-lg flex items-center justify-center gap-3"
+          >
+            <span class="text-2xl">🎯</span>
+            <span>Voltar ao Jogo</span>
           </button>
         </div>
       </div>

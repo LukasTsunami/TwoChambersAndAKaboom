@@ -1,0 +1,64 @@
+<%# Menu hamburguer para o jogo %>
+<div class="fixed top-4 right-4 z-40" data-controller="hamburger">
+  <!-- Botão hamburguer -->
+  <button
+    type="button"
+    data-action="click->hamburger#toggle"
+    class="w-12 h-12 bg-slate-800/80 backdrop-blur-sm rounded-full flex flex-col items-center justify-center gap-1.5 shadow-lg hover:bg-slate-700/80 transition-all"
+  >
+    <span class="w-5 h-0.5 bg-white rounded"></span>
+    <span class="w-5 h-0.5 bg-white rounded"></span>
+    <span class="w-5 h-0.5 bg-white rounded"></span>
+  </button>
+
+  <!-- Menu dropdown -->
+  <div
+    data-hamburger-target="menu"
+    class="hidden absolute top-14 right-0 w-56 bg-slate-800/95 backdrop-blur-sm rounded-xl shadow-xl border border-slate-700 overflow-hidden"
+  >
+    <div class="p-3 border-b border-slate-700">
+      <p class="text-slate-400 text-xs uppercase tracking-wide">Jogador</p>
+      <p class="text-white font-semibold truncate"><%= player.name %></p>
+      <% if player.is_creator %>
+        <span class="text-amber-400 text-xs">👑 Criador da sala</span>
+      <% end %>
+    </div>
+
+    <div class="p-2 space-y-1">
+      <!-- Sair do Jogo (todos) - apenas volta pra home -->
+      <%= button_to exit_game_game_path(game), 
+          method: :post,
+          data: { turbo: false },
+          class: "w-full flex items-center gap-3 px-3 py-2.5 text-slate-300 hover:bg-slate-700/50 rounded-lg transition-all" do %>
+        <span class="text-lg">🚪</span>
+        <span class="font-semibold">Sair do Jogo</span>
+      <% end %>
+
+      <% if player.is_creator %>
+        <!-- Apagar Sala (apenas criador) -->
+        <%= button_to destroy_room_game_path(game), 
+            method: :delete,
+            data: { turbo: false, turbo_confirm: "Tem certeza que deseja APAGAR a sala? Todos os jogadores serão removidos e o jogo terminará!" },
+            class: "w-full flex items-center gap-3 px-3 py-2.5 text-red-400 hover:bg-red-500/20 rounded-lg transition-all" do %>
+          <span class="text-lg">🗑️</span>
+          <span class="font-semibold">Apagar Sala</span>
+        <% end %>
+      <% else %>
+        <!-- Abandonar Jogo (apenas jogadores normais) -->
+        <%= button_to abandon_game_path(game), 
+            method: :delete,
+            data: { turbo: false, turbo_confirm: "Tem certeza que deseja ABANDONAR o jogo? Você será removido da sala." },
+            class: "w-full flex items-center gap-3 px-3 py-2.5 text-orange-400 hover:bg-orange-500/20 rounded-lg transition-all" do %>
+          <span class="text-lg">🏃</span>
+          <span class="font-semibold">Abandonar Jogo</span>
+        <% end %>
+      <% end %>
+    </div>
+
+    <div class="p-2 border-t border-slate-700">
+      <p class="text-slate-500 text-xs text-center">
+        Sala: <span class="font-mono"><%= game.code %></span>
+      </p>
+    </div>
+  </div>
+</div>

@@ -6,7 +6,8 @@ export default class extends Controller {
     "nameInput", "pinInput",
     "pinTitle", "pinHint",
     "backBtn", "stepIndicator",
-    "modeInput", "displayName"
+    "modeInput", "displayName",
+    "normalActions", "activeGameAction", "gameCodeDisplay"
   ]
 
   static values = {
@@ -57,13 +58,42 @@ export default class extends Controller {
   }
 
   // Step 2: Verificar PIN e ir para step 3
-  checkPin(event) {
+  async checkPin(event) {
     event.preventDefault()
 
     const pin = this.pinInputTarget.value.trim()
     if (!pin || !/^\d{3}$/.test(pin)) {
       this.showError("PIN deve ter exatamente 3 dígitos")
       return
+    }
+
+    const name = this.nameInputTarget.value.trim()
+
+    // Validar PIN se for login
+    if (this.modeValue === "login") {
+      try {
+        const response = await fetch('/players/validate_pin', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'X-CSRF-Token': document.querySelector('meta[name="csrf-token"]').content
+          },
+          body: JSON.stringify({ name, pin })
+        })
+        const data = await response.json()
+
+        if (!data.valid) {
+          this.showError(data.error || "PIN incorreto")
+          return
+        }
+
+        this.hasActiveGame = data.has_active_game
+        this.gameCode = data.game_code
+      } catch (error) {
+        console.error('Erro ao validar PIN:', error)
+      }
+    } else {
+      this.hasActiveGame = false
     }
 
     this.goToStep(3)
@@ -100,6 +130,18 @@ export default class extends Controller {
       this.backBtnTarget.classList.remove("hidden")
       this.modeInputTarget.value = this.modeValue
       this.displayNameTarget.textContent = this.nameInputTarget.value
+
+      // Mostrar botões corretos baseado no jogo ativo
+      if (this.hasActiveGame) {
+        this.normalActionsTarget.classList.add("hidden")
+        this.activeGameActionTarget.classList.remove("hidden")
+        if (this.hasGameCodeDisplayTarget) {
+          this.gameCodeDisplayTarget.textContent = this.gameCode
+        }
+      } else {
+        this.normalActionsTarget.classList.remove("hidden")
+        this.activeGameActionTarget.classList.add("hidden")
+      }
     }
 
     // Atualizar indicadores

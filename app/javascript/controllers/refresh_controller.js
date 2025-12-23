@@ -37,6 +37,13 @@ export default class extends Controller {
         return true
       }
     }
+    
+    // Check if hamburger menu is open
+    const hamburgerMenu = document.querySelector('[data-hamburger-target="menu"]')
+    if (hamburgerMenu && !hamburgerMenu.classList.contains('hidden')) {
+      return true
+    }
+    
     return false
   }
 

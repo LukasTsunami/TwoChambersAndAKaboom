@@ -137,24 +137,47 @@ class GamesController < ApplicationController
     redirect_to @game
   end
 
-  def leave
-    if current_player.game
-      game = current_player.game
-      was_creator = current_player.is_creator
-
-      current_player.leave_game!
-
-      # Se era o criador, apaga a sala inteira
-      if was_creator
-        game.destroy
-      else
-        broadcast_game_update(game) if game.persisted?
-      end
-    end
-
-    # Limpa a sessão ao sair
+  # Sair do jogo - apenas volta pra home, continua associado ao jogo
+  def exit_game
     session.delete(:player_id)
     redirect_to root_path
+  end
+
+  # Abandonar o jogo - desassocia o jogador da sala
+  def abandon
+    if current_player.game
+      game = current_player.game
+
+      # Criador só pode abandonar se o jogo já terminou
+      if current_player.is_creator && game.status != 'finished'
+        redirect_to game, alert: 'O criador não pode abandonar a sala durante o jogo. Use "Apagar Sala" ou "Sair do Jogo".'
+        return
+      end
+
+      current_player.leave_game!
+      broadcast_game_update(game) if game.persisted?
+    end
+
+    session.delete(:player_id)
+    redirect_to root_path, notice: "Você saiu da sala."
+  end
+
+  # Apagar a sala - destrói o jogo (só para criador)
+  def destroy_room
+    if current_player.game
+      game = current_player.game
+
+      unless current_player.is_creator
+        redirect_to game, alert: 'Apenas o criador pode apagar a sala.'
+        return
+      end
+
+      current_player.leave_game!
+      game.destroy
+    end
+
+    session.delete(:player_id)
+    redirect_to root_path, notice: "Sala apagada com sucesso!"
   end
 
   def timer_expired

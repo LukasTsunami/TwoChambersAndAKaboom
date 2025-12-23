@@ -102,7 +102,7 @@
 
   <!-- Voltar -->
   <div class="w-full max-w-sm">
-    <%= button_to leave_game_path(game), method: :delete, class: "w-full py-4 bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-400 hover:to-orange-400 text-slate-900 font-bold text-lg rounded-xl transition-all" do %>
+    <%= button_to abandon_game_path(game), method: :delete, data: { turbo: false }, class: "w-full py-4 bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-400 hover:to-orange-400 text-slate-900 font-bold text-lg rounded-xl transition-all" do %>
       🏠 Voltar ao Início
     <% end %>
   </div>
