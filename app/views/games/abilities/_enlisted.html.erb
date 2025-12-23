@@ -1,0 +1,8 @@
+<p class="text-slate-300 text-sm mb-3">
+  Voluntarie-se para ser enviado como refém para a outra sala!
+</p>
+<%= button_to "🙋 Voluntariar-se como Refém", 
+    ability_game_path(game, ability: 'volunteer'),
+    method: :post,
+    class: "w-full py-3 bg-amber-600 hover:bg-amber-500 text-white font-bold rounded-lg transition-all" %>
+

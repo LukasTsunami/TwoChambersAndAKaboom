@@ -1,12 +1,17 @@
 class Game < ApplicationRecord
+  include RoleDefinitions
+
   has_many :players, dependent: :destroy
+  has_many :card_shares, dependent: :destroy
 
   validates :code, presence: true, uniqueness: true
   validates :status, inclusion: { in: %w[waiting playing leader_selection hostage_exchange finished] }
   validates :round_time, numericality: { greater_than: 0 }
   validates :total_rounds, numericality: { greater_than_or_equal_to: 0, less_than_or_equal_to: 5 }
+  validates :role_selection_mode, inclusion: { in: %w[manual all by_players random] }, allow_nil: true
 
   before_validation :generate_code, on: :create
+  before_save :serialize_selected_roles
 
   scope :active, -> { where.not(status: 'finished') }
 
@@ -49,6 +54,14 @@ class Game < ApplicationRecord
     20 => [5, 4, 3]
   }.freeze
 
+  # Roles de jogador ímpar disponíveis
+  ODD_PLAYER_ROLES = %w[hot_potato gambler evil_genius stepfather zombie].freeze
+
+  # Roles especiais por time
+  SPECIAL_BLUE_ROLES = %w[doctor agent soldier].freeze
+  SPECIAL_RED_ROLES = %w[dr_boom engineer fanatic].freeze
+  GENERIC_ROLES = %w[spy mime usurper kangaroo gargoyle pirate enlisted].freeze
+
   def creator
     players.find_by(is_creator: true)
   end
@@ -84,6 +97,19 @@ class Game < ApplicationRecord
     players.find_by(room: 2, is_leader: true)
   end
 
+  def parsed_selected_roles
+    return [] if selected_roles.blank?
+    JSON.parse(selected_roles) rescue []
+  end
+
+  def selected_roles=(value)
+    if value.is_a?(Array)
+      super(value.reject(&:blank?).to_json)
+    else
+      super(value)
+    end
+  end
+
   def start_game!
     return unless can_start?
 
@@ -103,6 +129,9 @@ class Game < ApplicationRecord
   end
 
   def start_next_round!
+    # Atualiza contadores de liderança para o Gênio do Mal
+    update_leader_counts!
+
     players.update_all(is_leader: false, is_hostage: false, leader_vote_id: nil)
 
     if current_round >= total_rounds
@@ -123,11 +152,18 @@ class Game < ApplicationRecord
     update!(status: 'leader_selection')
   end
 
-  # Contagem de votos para líder em uma sala
+  # Contagem de votos para líder em uma sala (considera Soldado com voto duplo)
   def vote_counts_for_room(room_number)
     room_players = players.where(room: room_number)
-    votes = room_players.where.not(leader_vote_id: nil).pluck(:leader_vote_id)
-    votes.tally
+    votes = {}
+
+    room_players.where.not(leader_vote_id: nil).each do |player|
+      vote_weight = player.role == 'soldier' ? 2 : 1
+      votes[player.leader_vote_id] ||= 0
+      votes[player.leader_vote_id] += vote_weight
+    end
+
+    votes
   end
 
   # Verifica se todos da sala votaram
@@ -214,13 +250,19 @@ class Game < ApplicationRecord
     president = players.find_by(role: 'president')
     bomber = players.find_by(role: 'bomber')
 
-    winning = if president&.room == bomber&.room
-                'red' # Bomba explodiu o presidente
-              else
-                'blue' # Presidente sobreviveu
-              end
+    # Verifica condições especiais antes de determinar o vencedor
+    winning_team = determine_winner(president, bomber)
+    individual_winners = determine_individual_winners(president, bomber, winning_team)
 
-    update!(status: 'finished', winning_team: winning)
+    update!(
+      status: 'finished',
+      winning_team: winning_team
+    )
+
+    # Marca vencedores individuais (para roles como Apostador, Gênio do Mal, etc.)
+    individual_winners.each do |player|
+      player.update!(is_winner: true) if player.respond_to?(:is_winner=)
+    end
   end
 
   def time_remaining
@@ -243,22 +285,208 @@ class Game < ApplicationRecord
     end
   end
 
+  def serialize_selected_roles
+    if selected_roles.is_a?(Array)
+      self.selected_roles = selected_roles.reject(&:blank?).to_json
+    end
+  end
+
+  def update_leader_counts!
+    # Atualiza contadores de liderança para o Gênio do Mal
+    room_1_leader&.increment!(:times_was_leader_room1)
+    room_2_leader&.increment!(:times_was_leader_room2)
+  end
+
   def assign_teams_and_roles!
     shuffled = players.to_a.shuffle
+    player_count = shuffled.size
+    is_odd = player_count.odd?
 
+    # Se número ímpar, um jogador vai para time preto/verde
+    odd_player = nil
+    if is_odd
+      odd_player = shuffled.pop
+      assign_odd_player_role!(odd_player)
+    end
+
+    # Divide o resto entre azul e vermelho
     half = shuffled.size / 2
     blue_team = shuffled[0...half]
     red_team = shuffled[half..]
 
-    # Time azul - tem o presidente
-    blue_team.each_with_index do |player, index|
-      player.update!(team: 'blue', role: index == 0 ? 'president' : 'regular')
+    # Determina os roles disponíveis baseado no modo de seleção
+    available_roles = determine_available_roles
+
+    # Atribui roles ao time azul
+    assign_team_roles!(blue_team, 'blue', available_roles)
+
+    # Atribui roles ao time vermelho
+    assign_team_roles!(red_team, 'red', available_roles)
+  end
+
+  def assign_odd_player_role!(player)
+    available_odd_roles = determine_odd_player_roles
+    selected_role = available_odd_roles.sample || 'gambler'
+
+    # Zumbi é do time verde, os outros são do time preto
+    team = selected_role == 'zombie' ? 'green' : 'black'
+
+    player.update!(team: team, role: selected_role)
+  end
+
+  def determine_odd_player_roles
+    case role_selection_mode
+    when 'manual'
+      selected = parsed_selected_roles & ODD_PLAYER_ROLES
+      selected.empty? ? ['gambler'] : selected
+    when 'all'
+      ODD_PLAYER_ROLES
+    when 'by_players', 'random'
+      ODD_PLAYER_ROLES.sample(rand(1..3))
+    else
+      ['gambler']
+    end
+  end
+
+  def determine_available_roles
+    case role_selection_mode
+    when 'manual'
+      parsed_selected_roles
+    when 'all'
+      SPECIAL_BLUE_ROLES + SPECIAL_RED_ROLES + GENERIC_ROLES
+    when 'by_players'
+      # Mais jogadores = mais roles especiais
+      count = players.count
+      special_count = (count / 4).clamp(1, 6)
+      (SPECIAL_BLUE_ROLES + SPECIAL_RED_ROLES).sample(special_count) +
+        GENERIC_ROLES.sample(special_count)
+    when 'random'
+      all_roles = SPECIAL_BLUE_ROLES + SPECIAL_RED_ROLES + GENERIC_ROLES
+      all_roles.sample(rand(2..6))
+    else
+      []
+    end
+  end
+
+  def assign_team_roles!(team_players, team_color, available_roles)
+    return if team_players.empty?
+
+    # O primeiro jogador recebe o role principal (presidente ou bomba)
+    main_role = team_color == 'blue' ? 'president' : 'bomber'
+    team_players.first.update!(team: team_color, role: main_role)
+
+    # Filtra roles disponíveis para este time
+    team_specific_roles = if team_color == 'blue'
+      available_roles & (SPECIAL_BLUE_ROLES + GENERIC_ROLES.map { |r| "#{r}_blue" } + GENERIC_ROLES)
+    else
+      available_roles & (SPECIAL_RED_ROLES + GENERIC_ROLES.map { |r| "#{r}_red" } + GENERIC_ROLES)
     end
 
-    # Time vermelho - tem a bomba
-    red_team.each_with_index do |player, index|
-      player.update!(team: 'red', role: index == 0 ? 'bomber' : 'regular')
+    # Normaliza roles genéricos para incluir o sufixo do time
+    normalized_roles = team_specific_roles.map do |role|
+      if GENERIC_ROLES.include?(role)
+        "#{role}_#{team_color}"
+      elsif role.end_with?('_blue') || role.end_with?('_red')
+        role
+      else
+        role
+      end
     end
+
+    # Remove roles que não pertencem a este time
+    normalized_roles = normalized_roles.select do |role|
+      role_info = ROLES[role.to_sym]
+      role_info.nil? || role_info[:team] == team_color || GENERIC_ROLES.any? { |g| role.start_with?(g) }
+    end
+
+    # Atribui roles aos demais jogadores
+    remaining_players = team_players[1..]
+    roles_to_assign = normalized_roles.dup.shuffle
+
+    remaining_players.each do |player|
+      role = roles_to_assign.shift || "citizen_#{team_color}"
+      player.update!(team: team_color, role: role)
+    end
+  end
+
+  def determine_winner(president, bomber)
+    # Verifica condição do Engenheiro (precisa ter feito card share com Bomber)
+    engineer = players.find_by(role: 'engineer')
+    if engineer.present?
+      engineer_shared_with_bomber = card_shares.accepted
+        .between_players(engineer, bomber)
+        .exists?
+      unless engineer_shared_with_bomber
+        return 'blue' # Bomba não armada, azul vence
+      end
+    end
+
+    # Verifica condição do Médico (precisa ter feito card share com Presidente)
+    doctor = players.find_by(role: 'doctor')
+    if doctor.present?
+      doctor_shared_with_president = card_shares.accepted
+        .between_players(doctor, president)
+        .exists?
+      unless doctor_shared_with_president
+        return 'red' # Presidente não protegido, vermelho vence
+      end
+    end
+
+    # Condição padrão: Bomba e Presidente na mesma sala?
+    if president&.room == bomber&.room
+      'red' # Bomba explodiu o presidente
+    else
+      'blue' # Presidente sobreviveu
+    end
+  end
+
+  def determine_individual_winners(president, bomber, team_winner)
+    winners = []
+
+    # Apostador - acertou o time vencedor?
+    gambler = players.find_by(role: 'gambler')
+    if gambler.present? && gambler.gambler_guess == team_winner
+      winners << gambler
+    end
+
+    # Gênio do Mal - foi líder em ambas as salas?
+    evil_genius = players.find_by(role: 'evil_genius')
+    if evil_genius.present? &&
+       evil_genius.times_was_leader_room1.to_i > 0 &&
+       evil_genius.times_was_leader_room2.to_i > 0
+      winners << evil_genius
+    end
+
+    # Padrasto - filhos estão na mesma sala?
+    stepfather = players.find_by(role: 'stepfather')
+    if stepfather.present? && stepfather.stepfather_children.present?
+      children_ids = JSON.parse(stepfather.stepfather_children) rescue []
+      children = players.where(id: children_ids)
+      if children.count == 2 && children.first.room == children.last.room
+        winners << stepfather
+      end
+    end
+
+    # Fanático - está na sala onde a bomba explodiu?
+    fanatic = players.find_by(role: 'fanatic')
+    if fanatic.present? && team_winner == 'red' && fanatic.room == president&.room
+      winners << fanatic
+    end
+
+    # Zumbis - sala só com zumbis e sem bomba?
+    zombies = players.where(role: 'zombie').or(players.where(is_infected: true))
+    if zombies.any?
+      [1, 2].each do |room|
+        room_players = players.where(room: room)
+        all_zombies = room_players.all? { |p| p.role == 'zombie' || p.is_infected? }
+        no_bomber = !room_players.exists?(role: 'bomber')
+        if all_zombies && no_bomber && room_players.count > 0
+          winners.concat(room_players.to_a)
+        end
+      end
+    end
+
+    winners.uniq
   end
 
   def assign_rooms!
@@ -269,4 +497,3 @@ class Game < ApplicationRecord
     all_players[half..].each { |p| p.update!(room: 2) }
   end
 end
-

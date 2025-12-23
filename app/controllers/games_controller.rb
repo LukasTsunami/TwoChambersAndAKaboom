@@ -1,6 +1,6 @@
 class GamesController < ApplicationController
   before_action :require_player!
-  before_action :set_game, only: [:show, :start, :select_leader, :select_hostages, :exchange]
+  before_action :set_game, only: [:show, :start, :select_leader, :select_hostages, :exchange, :ability]
 
   def new
     @game = Game.new
@@ -18,7 +18,6 @@ class GamesController < ApplicationController
   end
 
   def join
-    # Página para digitar o código
   end
 
   def enter
@@ -57,10 +56,7 @@ class GamesController < ApplicationController
     end
 
     @game.start_game!
-
-    # Broadcast para todos os jogadores (envia player individual para cada um)
     broadcast_game_update
-
     redirect_to @game
   end
 
@@ -73,10 +69,7 @@ class GamesController < ApplicationController
       return
     end
 
-    # Registra o voto do jogador atual
     current_player.update!(leader_vote_id: candidate.id)
-
-    # Tenta finalizar a eleição
     result = @game.try_finalize_leader_election!
 
     case result
@@ -95,35 +88,29 @@ class GamesController < ApplicationController
   end
 
   def select_hostages
-    # Apenas líderes podem selecionar reféns
     unless current_player.is_leader
       redirect_to @game, alert: 'Apenas o líder pode selecionar reféns.'
       return
     end
 
     hostage_ids = params[:hostage_ids] || []
-
-    # Verifica se a quantidade está correta
     required = @game.hostages_for_current_round
+
     if hostage_ids.size != required
       redirect_to @game, alert: "Selecione exatamente #{required} refém(s)."
       return
     end
 
-    # Marca os selecionados como hostages
     @game.players.where(room: current_player.room, is_hostage: true).update_all(is_hostage: false)
     @game.players.where(id: hostage_ids, room: current_player.room).update_all(is_hostage: true)
 
-    # Verifica se ambos os times já selecionaram - se sim, executa a troca automaticamente
     @game.reload
     room1_hostages = @game.room_1_players.where(is_hostage: true)
     room2_hostages = @game.room_2_players.where(is_hostage: true)
 
     if room1_hostages.count == required && room2_hostages.count == required
-      # Troca os reféns de sala automaticamente
       room1_hostage_ids = room1_hostages.pluck(:id)
       room2_hostage_ids = room2_hostages.pluck(:id)
-
       @game.exchange_hostages!(room1_hostage_ids, room2_hostage_ids)
     end
 
@@ -132,23 +119,18 @@ class GamesController < ApplicationController
   end
 
   def exchange
-    # Este método não é mais necessário pois a troca acontece automaticamente
-    # Mantido apenas para compatibilidade
     redirect_to @game
   end
 
-  # Sair do jogo - apenas volta pra home, continua associado ao jogo
   def exit_game
     session.delete(:player_id)
     redirect_to root_path
   end
 
-  # Abandonar o jogo - desassocia o jogador da sala
   def abandon
     if current_player.game
       game = current_player.game
 
-      # Criador só pode abandonar se o jogo já terminou
       if current_player.is_creator && game.status != 'finished'
         redirect_to game, alert: 'O criador não pode abandonar a sala durante o jogo. Use "Apagar Sala" ou "Sair do Jogo".'
         return
@@ -162,7 +144,6 @@ class GamesController < ApplicationController
     redirect_to root_path, notice: "Você saiu da sala."
   end
 
-  # Apagar a sala - destrói o jogo (só para criador)
   def destroy_room
     if current_player.game
       game = current_player.game
@@ -191,21 +172,188 @@ class GamesController < ApplicationController
     head :ok
   end
 
+  def ability
+    ability_name = params[:ability]
+
+    case ability_name
+    when 'usurp'
+      handle_usurp_ability
+    when 'jump'
+      handle_kangaroo_ability
+    when 'volunteer'
+      handle_enlisted_ability
+    when 'plank'
+      handle_pirate_ability
+    when 'force_share'
+      handle_agent_ability
+    when 'adopt'
+      handle_stepfather_ability
+    when 'gambler_guess'
+      handle_gambler_guess
+    else
+      redirect_to @game, alert: 'Habilidade desconhecida.'
+    end
+  end
+
   private
+
+  def handle_usurp_ability
+    unless current_player.role&.include?('usurper')
+      redirect_to @game, alert: 'Você não tem essa habilidade.'
+      return
+    end
+
+    unless current_player.can_use_ability?(@game)
+      redirect_to @game, alert: 'Você não pode usar essa habilidade agora.'
+      return
+    end
+
+    # Remove o líder atual da sala e coloca o usurpador
+    current_leader = @game.players.find_by(room: current_player.room, is_leader: true)
+    current_leader&.update!(is_leader: false)
+
+    current_player.update!(is_leader: true, ability_used: true)
+    broadcast_game_update
+    redirect_to @game, notice: 'Você usurpou a liderança!'
+  end
+
+  def handle_kangaroo_ability
+    unless current_player.role&.include?('kangaroo')
+      redirect_to @game, alert: 'Você não tem essa habilidade.'
+      return
+    end
+
+    unless current_player.can_use_ability?(@game)
+      redirect_to @game, alert: 'Você não pode usar essa habilidade agora.'
+      return
+    end
+
+    new_room = current_player.room == 1 ? 2 : 1
+    current_player.update!(room: new_room, ability_used: true)
+    broadcast_game_update
+    redirect_to @game, notice: "Você pulou para a Sala #{new_room}!"
+  end
+
+  def handle_enlisted_ability
+    unless current_player.role&.include?('enlisted')
+      redirect_to @game, alert: 'Você não tem essa habilidade.'
+      return
+    end
+
+    unless current_player.can_use_ability?(@game)
+      redirect_to @game, alert: 'Você não pode usar essa habilidade agora.'
+      return
+    end
+
+    current_player.update!(is_hostage: true, ability_used: true)
+    broadcast_game_update
+    redirect_to @game, notice: 'Você se voluntariou como refém!'
+  end
+
+  def handle_pirate_ability
+    unless current_player.role&.include?('pirate')
+      redirect_to @game, alert: 'Você não tem essa habilidade.'
+      return
+    end
+
+    unless current_player.can_use_ability?(@game)
+      redirect_to @game, alert: 'Você não pode usar essa habilidade agora.'
+      return
+    end
+
+    target = @game.players.find_by(id: params[:target_player_id], room: current_player.room)
+    unless target
+      redirect_to @game, alert: 'Jogador inválido.'
+      return
+    end
+
+    target.update!(is_hostage: true)
+    current_player.update!(ability_used: true)
+    broadcast_game_update
+    redirect_to @game, notice: "#{target.name} foi enviado para a prancha!"
+  end
+
+  def handle_agent_ability
+    unless current_player.role == 'agent'
+      redirect_to @game, alert: 'Você não tem essa habilidade.'
+      return
+    end
+
+    unless current_player.can_use_ability?(@game)
+      redirect_to @game, alert: 'Você não pode usar essa habilidade agora.'
+      return
+    end
+
+    target = @game.players.find_by(id: params[:target_player_id], room: current_player.room)
+    unless target
+      redirect_to @game, alert: 'Jogador inválido.'
+      return
+    end
+
+    # Cria um card share forçado (já aceito)
+    CardShare.create!(
+      game: @game,
+      from_player: current_player,
+      to_player: target,
+      share_type: 'card',
+      round: @game.current_round,
+      status: 'accepted'
+    )
+
+    current_player.update!(ability_used: true)
+    broadcast_game_update
+    redirect_to @game, notice: "Você forçou um card share com #{target.name}!"
+  end
+
+  def handle_stepfather_ability
+    unless current_player.role == 'stepfather'
+      redirect_to @game, alert: 'Você não tem essa habilidade.'
+      return
+    end
+
+    child1 = @game.players.find_by(id: params[:child1_id])
+    child2 = @game.players.find_by(id: params[:child2_id])
+
+    unless child1 && child2 && child1.id != child2.id
+      redirect_to @game, alert: 'Selecione dois jogadores diferentes.'
+      return
+    end
+
+    current_player.update!(
+      stepfather_children: [child1.id, child2.id].to_json,
+      ability_used: true
+    )
+
+    broadcast_game_update
+    redirect_to @game, notice: "#{child1.name} e #{child2.name} agora são seus filhos!"
+  end
+
+  def handle_gambler_guess
+    unless current_player.role == 'gambler'
+      redirect_to @game, alert: 'Você não é o Apostador.'
+      return
+    end
+
+    guess = params[:guess]
+    unless %w[blue red].include?(guess)
+      redirect_to @game, alert: 'Palpite inválido.'
+      return
+    end
+
+    current_player.update!(gambler_guess: guess)
+    redirect_to @game, notice: "Você apostou no time #{guess == 'blue' ? 'Azul' : 'Vermelho'}!"
+  end
 
   def set_game
     @game = Game.find(params[:id])
   end
 
   def game_params
-    params.require(:game).permit(:round_time, :total_rounds)
+    params.require(:game).permit(:round_time, :total_rounds, :role_selection_mode, selected_roles: [])
   end
 
   def broadcast_game_update(game = @game)
-    # Recarrega o game e players do banco para pegar dados atualizados
     game.reload
-
-    # Broadcast individual para cada jogador
     game.players.reload.each do |player|
       Turbo::StreamsChannel.broadcast_replace_to(
         "player_#{player.id}",
@@ -216,4 +364,3 @@ class GamesController < ApplicationController
     end
   end
 end
-

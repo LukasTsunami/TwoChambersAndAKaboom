@@ -24,6 +24,15 @@ Rails.application.routes.draw do
       delete :destroy_room
       post :timer_expired
     end
+
+    resources :card_shares, only: [:index, :create] do
+      member do
+        post :accept
+        post :reject
+      end
+    end
+
+    post :ability, on: :member
   end
 
   # Admin routes
