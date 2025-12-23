@@ -160,7 +160,7 @@ Contribuições são bem-vindas! Sinta-se à vontade para abrir issues e pull re
 
 ## 📄 Licença
 
-Este projeto é apenas para fins educacionais e de entretenimento. Two Chambers and a Kaboom é um jogo criado pela Tuesday Knight Games.
+Este projeto é apenas para fins educacionais e de entretenimento. Two Chambers and a Kaboom é um jogo inspirado em Two Rooms and a Boom.
 
 ---
 
