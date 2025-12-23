@@ -1,6 +1,17 @@
-<div class="flex-1 flex flex-col items-center justify-center px-6 py-12" data-controller="modal">
+<% 
+  # Parâmetros para preencher campos quando usuário já existe
+  prefill_name = params[:name].to_s
+  prefill_mode = params[:mode].to_s
+  prefill_action = params[:action_type].to_s
+%>
+
+<div class="flex-1 flex flex-col items-center justify-center px-6 py-12" 
+     data-controller="modal multistep" 
+     data-multistep-prefill-name-value="<%= prefill_name %>"
+     data-multistep-prefill-mode-value="<%= prefill_mode %>">
+  
   <!-- Logo / Título -->
-  <div class="text-center mb-12">
+  <div class="text-center mb-8">
     <div class="text-6xl mb-4">💣</div>
     <h1 class="font-display text-3xl font-black tracking-wider text-white mb-2">
       TWO ROOMS
@@ -8,50 +19,125 @@
     <h2 class="font-display text-2xl font-bold text-amber-400">
       AND A BOOM
     </h2>
-    <p class="text-slate-400 mt-4 text-lg">
-      O jogo de dedução social definitivo
-    </p>
+  </div>
+
+  <!-- Step Indicators -->
+  <div class="flex items-center gap-3 mb-8">
+    <div class="w-8 h-8 rounded-full bg-amber-500 flex items-center justify-center text-slate-900 font-bold text-sm" data-multistep-target="stepIndicator">1</div>
+    <div class="w-8 h-1 bg-slate-600 rounded"></div>
+    <div class="w-8 h-8 rounded-full bg-slate-600 flex items-center justify-center text-white font-bold text-sm" data-multistep-target="stepIndicator">2</div>
+    <div class="w-8 h-1 bg-slate-600 rounded"></div>
+    <div class="w-8 h-8 rounded-full bg-slate-600 flex items-center justify-center text-white font-bold text-sm" data-multistep-target="stepIndicator">3</div>
   </div>
 
   <!-- Formulário -->
   <div class="w-full max-w-sm">
-    <%= form_with url: players_path, method: :post, class: "space-y-6" do |f| %>
-      <div>
-        <label class="block text-slate-300 text-sm font-semibold mb-2 uppercase tracking-wide">
-          Seu Nome
-        </label>
-        <input
-          type="text"
-          name="name"
-          required
-          autofocus
-          autocomplete="off"
-          placeholder="Digite seu nome..."
-          class="w-full px-5 py-4 bg-slate-800/50 border-2 border-slate-600 rounded-xl text-white text-lg font-semibold placeholder-slate-500 focus:outline-none focus:border-amber-400 focus:ring-2 focus:ring-amber-400/20 transition-all"
+    <%= form_with url: players_path, method: :post, class: "space-y-5", data: { turbo: false } do |f| %>
+      <input type="hidden" name="mode" value="create" data-multistep-target="modeInput">
+
+      <!-- STEP 1: Nome -->
+      <div data-multistep-target="step1">
+        <div class="text-center mb-6">
+          <h3 class="font-display text-xl font-bold text-white mb-2">Como você quer ser chamado?</h3>
+          <p class="text-slate-400 text-sm">Escolha um nome para os outros jogadores verem</p>
+        </div>
+
+        <div class="mb-6">
+          <input
+            type="text"
+            name="name"
+            data-multistep-target="nameInput"
+            required
+            autocomplete="off"
+            placeholder="Digite seu nome..."
+            class="w-full px-5 py-4 bg-slate-800/50 border-2 border-slate-600 rounded-xl text-white text-lg font-semibold placeholder-slate-500 focus:outline-none focus:border-amber-400 focus:ring-2 focus:ring-amber-400/20 transition-all text-center"
+          >
+        </div>
+
+        <button
+          type="button"
+          data-action="click->multistep#checkName"
+          class="w-full py-4 bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-400 hover:to-orange-400 text-slate-900 font-bold text-lg rounded-xl transition-all transform hover:scale-105 active:scale-95 shadow-lg"
         >
+          Continuar →
+        </button>
       </div>
 
-      <div class="grid grid-cols-2 gap-4">
-        <button
-          type="submit"
-          name="action_type"
-          value="create"
-          class="py-4 px-6 bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-400 hover:to-orange-400 text-slate-900 font-bold text-lg rounded-xl transition-all transform hover:scale-105 active:scale-95 shadow-lg"
-        >
-          🏠 Criar Sala
-        </button>
+      <!-- STEP 2: PIN -->
+      <div data-multistep-target="step2" class="hidden">
+        <div class="text-center mb-6">
+          <h3 class="font-display text-xl font-bold text-white mb-2" data-multistep-target="pinTitle">Crie um PIN</h3>
+          <p class="text-slate-400 text-sm" data-multistep-target="pinHint">
+            <span class="text-green-400">✨ Novo jogador!</span> Crie um PIN de 3 dígitos para acessar sua conta depois.
+          </p>
+        </div>
+
+        <div class="mb-6">
+          <input
+            type="text"
+            name="pin"
+            data-multistep-target="pinInput"
+            required
+            inputmode="numeric"
+            pattern="\d{3}"
+            maxlength="3"
+            placeholder="•••"
+            class="w-full px-5 py-4 bg-slate-800/50 border-2 border-slate-600 rounded-xl text-white text-3xl font-bold text-center tracking-[0.5em] placeholder-slate-500 focus:outline-none focus:border-amber-400 focus:ring-2 focus:ring-amber-400/20 transition-all"
+          >
+        </div>
 
         <button
-          type="submit"
-          name="action_type"
-          value="join"
-          class="py-4 px-6 bg-gradient-to-r from-blue-500 to-cyan-500 hover:from-blue-400 hover:to-cyan-400 text-white font-bold text-lg rounded-xl transition-all transform hover:scale-105 active:scale-95 shadow-lg"
+          type="button"
+          data-action="click->multistep#checkPin"
+          class="w-full py-4 bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-400 hover:to-orange-400 text-slate-900 font-bold text-lg rounded-xl transition-all transform hover:scale-105 active:scale-95 shadow-lg"
         >
-          🚪 Entrar
+          Continuar →
         </button>
+      </div>
+
+      <!-- STEP 3: Criar ou Entrar -->
+      <div data-multistep-target="step3" class="hidden">
+        <div class="text-center mb-6">
+          <h3 class="font-display text-xl font-bold text-white mb-2">O que deseja fazer?</h3>
+          <p class="text-slate-400 text-sm">
+            Olá, <span class="text-amber-400 font-semibold" data-multistep-target="displayName"></span>! 👋
+          </p>
+        </div>
+
+        <div class="space-y-4">
+          <button
+            type="submit"
+            name="action_type"
+            value="create"
+            class="w-full py-5 bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-400 hover:to-orange-400 text-slate-900 font-bold text-lg rounded-xl transition-all transform hover:scale-105 active:scale-95 shadow-lg flex items-center justify-center gap-3"
+          >
+            <span class="text-2xl">🏠</span>
+            <span>Criar Nova Sala</span>
+          </button>
+
+          <button
+            type="submit"
+            name="action_type"
+            value="join"
+            class="w-full py-5 bg-gradient-to-r from-blue-500 to-cyan-500 hover:from-blue-400 hover:to-cyan-400 text-white font-bold text-lg rounded-xl transition-all transform hover:scale-105 active:scale-95 shadow-lg flex items-center justify-center gap-3"
+          >
+            <span class="text-2xl">🚪</span>
+            <span>Entrar em uma Sala</span>
+          </button>
+        </div>
       </div>
     <% end %>
   </div>
+
+  <!-- Botão Voltar (fixo no topo) -->
+  <button
+    type="button"
+    data-multistep-target="backBtn"
+    data-action="click->multistep#goBack"
+    class="hidden fixed top-6 left-6 px-4 py-2 bg-slate-700/50 backdrop-blur-sm rounded-full text-slate-300 text-sm font-semibold hover:bg-slate-600/50 transition-all flex items-center gap-2"
+  >
+    ← Voltar
+  </button>
 
   <!-- Botões de informação -->
   <div class="fixed bottom-6 left-6 right-6 flex justify-between">

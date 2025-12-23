@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2024_12_23_000002) do
+ActiveRecord::Schema[8.1].define(version: 2024_12_23_000004) do
   create_table "games", force: :cascade do |t|
     t.string "code", null: false
     t.datetime "created_at", null: false
@@ -31,13 +31,16 @@ ActiveRecord::Schema[8.1].define(version: 2024_12_23_000002) do
     t.boolean "is_creator", default: false
     t.boolean "is_hostage", default: false
     t.boolean "is_leader", default: false
+    t.integer "leader_vote_id"
     t.string "name", null: false
+    t.string "pin", limit: 3
     t.string "role"
     t.integer "room"
     t.string "session_token", null: false
     t.string "team"
     t.datetime "updated_at", null: false
     t.index ["game_id"], name: "index_players_on_game_id"
+    t.index ["leader_vote_id"], name: "index_players_on_leader_vote_id"
     t.index ["session_token"], name: "index_players_on_session_token", unique: true
   end
 

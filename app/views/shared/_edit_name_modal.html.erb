@@ -1,0 +1,40 @@
+<!-- Modal de Editar Nome -->
+<div id="edit-name-modal" class="hidden fixed inset-0 z-50 flex items-end justify-center" data-controller="modal">
+  <div
+    class="absolute inset-0 bg-black/70 backdrop-blur-sm"
+    data-action="click->modal#closeBackground"
+  ></div>
+
+  <div class="relative w-full max-w-lg bg-slate-800 rounded-t-3xl p-6 pb-10 slide-up">
+    <div class="flex justify-between items-center mb-6">
+      <h2 class="font-display text-2xl font-bold text-amber-400">✏️ Mudar Nome</h2>
+      <button
+        type="button"
+        data-action="click->modal#close"
+        class="text-slate-400 hover:text-white text-2xl"
+      >✕</button>
+    </div>
+
+    <%= form_with url: player_path(player), method: :patch, class: "space-y-6" do %>
+      <div>
+        <label class="block text-slate-300 text-sm font-semibold mb-2 uppercase tracking-wide">
+          Novo Nome
+        </label>
+        <input
+          type="text"
+          name="name"
+          value="<%= player.name %>"
+          required
+          autocomplete="off"
+          placeholder="Digite seu novo nome..."
+          class="w-full px-5 py-4 bg-slate-700/50 border-2 border-slate-600 rounded-xl text-white text-lg font-semibold placeholder-slate-500 focus:outline-none focus:border-amber-400 focus:ring-2 focus:ring-amber-400/20 transition-all"
+        >
+      </div>
+
+      <button type="submit" class="w-full py-4 bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-400 hover:to-orange-400 text-slate-900 font-bold text-lg rounded-xl transition-all">
+        ✓ Salvar
+      </button>
+    <% end %>
+  </div>
+</div>
+

@@ -3,10 +3,24 @@ class Player < ApplicationRecord
 
   validates :name, presence: true
   validates :session_token, presence: true, uniqueness: true
+  validates :pin, presence: true, length: { is: 3 }, format: { with: /\A\d{3}\z/, message: "deve ter exatamente 3 dígitos numéricos" }
+  validates :name, uniqueness: { scope: :pin, message: "já existe com este PIN" }
 
   before_validation :generate_session_token, on: :create
 
   scope :in_game, -> { where.not(game_id: nil) }
+
+  def self.authenticate(name, pin)
+    find_by(name: name.to_s.strip, pin: pin.to_s.strip)
+  end
+
+  def self.name_exists?(name)
+    exists?(name: name.to_s.strip)
+  end
+
+  def reset_pin!
+    update!(pin: "000")
+  end
 
   def team_name
     case team
@@ -56,7 +70,7 @@ class Player < ApplicationRecord
   end
 
   def leave_game!
-    update!(game: nil, team: nil, role: nil, room: nil, is_creator: false, is_leader: false, is_hostage: false)
+    update!(game: nil, team: nil, role: nil, room: nil, is_creator: false, is_leader: false, is_hostage: false, leader_vote_id: nil)
   end
 
   private
@@ -65,4 +79,3 @@ class Player < ApplicationRecord
     self.session_token ||= SecureRandom.uuid
   end
 end
-

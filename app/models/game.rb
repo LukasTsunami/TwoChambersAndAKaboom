@@ -54,7 +54,7 @@ class Game < ApplicationRecord
   end
 
   def can_start?
-    status == 'waiting' && players.count >= 4
+    status == 'waiting' && players.count >= 2
   end
 
   def hostages_for_current_round
@@ -103,7 +103,7 @@ class Game < ApplicationRecord
   end
 
   def start_next_round!
-    players.update_all(is_leader: false, is_hostage: false)
+    players.update_all(is_leader: false, is_hostage: false, leader_vote_id: nil)
 
     if current_round >= total_rounds
       finish_game!
@@ -118,7 +118,84 @@ class Game < ApplicationRecord
   end
 
   def start_leader_selection!
+    # Limpa votos anteriores
+    players.update_all(leader_vote_id: nil, is_leader: false)
     update!(status: 'leader_selection')
+  end
+
+  # Contagem de votos para líder em uma sala
+  def vote_counts_for_room(room_number)
+    room_players = players.where(room: room_number)
+    votes = room_players.where.not(leader_vote_id: nil).pluck(:leader_vote_id)
+    votes.tally
+  end
+
+  # Verifica se todos da sala votaram
+  def all_voted_in_room?(room_number)
+    room_players = players.where(room: room_number)
+    room_players.where(leader_vote_id: nil).count == 0
+  end
+
+  # Verifica se há empate na sala
+  def has_tie_in_room?(room_number)
+    counts = vote_counts_for_room(room_number)
+    return false if counts.empty?
+
+    max_votes = counts.values.max
+    counts.values.count(max_votes) > 1
+  end
+
+  # Retorna o líder eleito da sala (ou nil se empate/não decidido)
+  def elected_leader_for_room(room_number)
+    return nil unless all_voted_in_room?(room_number)
+    return nil if has_tie_in_room?(room_number)
+
+    counts = vote_counts_for_room(room_number)
+    return nil if counts.empty?
+
+    winner_id = counts.max_by { |_, v| v }&.first
+    players.find_by(id: winner_id)
+  end
+
+  # Tenta finalizar a votação de líder
+  def try_finalize_leader_election!
+    result = :waiting
+
+    # Processa sala 1 se todos votaram
+    if all_voted_in_room?(1)
+      if has_tie_in_room?(1)
+        result = :tie_room_1
+      elsif room_1_leader.nil?
+        # Elege o líder da sala 1 imediatamente
+        leader1 = elected_leader_for_room(1)
+        leader1&.update!(is_leader: true)
+      end
+    end
+
+    # Processa sala 2 se todos votaram
+    if all_voted_in_room?(2)
+      if has_tie_in_room?(2)
+        result = :tie_room_2 if result == :waiting
+      elsif room_2_leader.nil?
+        # Elege o líder da sala 2 imediatamente
+        leader2 = elected_leader_for_room(2)
+        leader2&.update!(is_leader: true)
+      end
+    end
+
+    # Verifica se ambos os líderes foram eleitos para passar para próxima fase
+    reload
+    if room_1_leader.present? && room_2_leader.present?
+      start_hostage_exchange!
+      return :success
+    end
+
+    result
+  end
+
+  # Limpa votos de uma sala (para revotação)
+  def reset_votes_for_room!(room_number)
+    players.where(room: room_number).update_all(leader_vote_id: nil)
   end
 
   def start_hostage_exchange!

@@ -1,43 +1,23 @@
+<%
+  room_players = game.players.where(room: player.room)
+  voted_count = room_players.where.not(leader_vote_id: nil).count
+  total_in_room = room_players.count
+  player_voted = player.leader_vote_id.present?
+  vote_counts = game.vote_counts_for_room(player.room)
+  my_room_leader = player.room == 1 ? game.room_1_leader : game.room_2_leader
+  other_room_leader = player.room == 1 ? game.room_2_leader : game.room_1_leader
+  all_my_room_voted = voted_count == total_in_room
+  has_tie = game.has_tie_in_room?(player.room)
+%>
+
 <div class="flex-1 flex flex-col px-4 py-6">
   <!-- Header -->
   <div class="text-center mb-6">
     <div class="inline-flex items-center gap-2 bg-amber-500/20 rounded-full px-4 py-2 mb-3">
       <span class="text-2xl">👑</span>
-      <span class="font-display text-lg font-bold text-amber-400">Seleção de Líder</span>
+      <span class="font-display text-lg font-bold text-amber-400">Votação de Líder</span>
     </div>
-    <p class="text-slate-400">Escolham o líder da Sala <%= player.room %></p>
-  </div>
-
-  <!-- Líder atual da sala -->
-  <% room_leader = player.room == 1 ? game.room_1_leader : game.room_2_leader %>
-  <% if room_leader %>
-    <div class="bg-amber-500/10 border border-amber-500/30 rounded-xl p-4 mb-6 text-center">
-      <p class="text-amber-400 text-sm mb-1">Líder selecionado:</p>
-      <p class="text-xl font-bold text-white">👑 <%= room_leader.name %></p>
-      <% if room_leader.id == player.id %>
-        <p class="text-amber-300 text-sm mt-1">(você)</p>
-      <% end %>
-    </div>
-  <% end %>
-
-  <!-- Status das salas -->
-  <div class="grid grid-cols-2 gap-4 mb-6">
-    <div class="bg-slate-800/30 rounded-xl p-3 text-center">
-      <p class="text-slate-400 text-sm">Sala 1</p>
-      <% if game.room_1_leader %>
-        <p class="text-green-400 font-semibold">✓ Líder escolhido</p>
-      <% else %>
-        <p class="text-amber-400 font-semibold pulse-animation">Escolhendo...</p>
-      <% end %>
-    </div>
-    <div class="bg-slate-800/30 rounded-xl p-3 text-center">
-      <p class="text-slate-400 text-sm">Sala 2</p>
-      <% if game.room_2_leader %>
-        <p class="text-green-400 font-semibold">✓ Líder escolhido</p>
-      <% else %>
-        <p class="text-amber-400 font-semibold pulse-animation">Escolhendo...</p>
-      <% end %>
-    </div>
+    <p class="text-slate-400">Sala <%= player.room %> - Rodada <%= game.current_round %></p>
   </div>
 
   <!-- Card do papel (mini) -->
@@ -60,24 +40,66 @@
     </div>
   </div>
 
-  <!-- Lista de jogadores para selecionar -->
-  <div class="flex-1">
-    <h3 class="text-sm font-semibold text-slate-400 mb-3 uppercase">Escolha o líder da sua sala</h3>
+  <% if my_room_leader %>
+    <!-- ESTADO 3: Líder do meu time foi escolhido -->
+    <div class="flex-1 flex flex-col">
+      <!-- Card dourado do líder escolhido -->
+      <div class="bg-gradient-to-br from-amber-500/20 to-yellow-500/20 border-2 border-amber-500 rounded-2xl p-6 text-center mb-6">
+        <div class="text-4xl mb-3">👑</div>
+        <p class="text-amber-400 text-sm uppercase tracking-wide mb-2">Líder Eleito da Sala <%= player.room %></p>
+        <p class="font-display text-2xl font-bold text-white"><%= my_room_leader.name %></p>
+        <% if my_room_leader.id == player.id %>
+          <p class="text-amber-300 text-sm mt-2">🎉 Parabéns, você foi eleito!</p>
+        <% end %>
+      </div>
 
-    <div class="space-y-2 mb-20">
-      <% game.players.where(room: player.room).each do |p| %>
-        <%= form_with url: select_leader_game_path(game), method: :post, class: "block" do %>
-          <input type="hidden" name="leader_id" value="<%= p.id %>">
-          <button type="submit" class="w-full flex items-center gap-3 bg-slate-800/30 hover:bg-slate-700/50 rounded-xl px-4 py-3 transition-all
-            <%= p.is_leader ? 'border-2 border-amber-500' : 'border border-transparent' %>">
+      <% if other_room_leader %>
+        <!-- Ambos os líderes escolhidos - passando para próxima fase -->
+        <div class="bg-green-500/10 border border-green-500/30 rounded-xl p-4 text-center">
+          <p class="text-green-400 font-semibold">✅ Ambos os líderes foram escolhidos!</p>
+          <p class="text-slate-400 text-sm mt-1">Preparando troca de reféns...</p>
+        </div>
+      <% else %>
+        <!-- Aguardando o outro time -->
+        <div class="bg-slate-800/30 rounded-xl p-6 text-center">
+          <div class="animate-pulse text-3xl mb-3">⏳</div>
+          <p class="text-slate-400">Aguardando a <strong class="text-white">Sala <%= player.room == 1 ? 2 : 1 %></strong> escolher um líder...</p>
+        </div>
+      <% end %>
+    </div>
+
+  <% elsif player_voted && !all_my_room_voted %>
+    <!-- ESTADO 2: Eu votei, aguardando meu time terminar -->
+    <div class="flex-1 flex flex-col">
+      <!-- Confirmação de voto -->
+      <div class="bg-green-500/10 border border-green-500/30 rounded-xl p-4 mb-6 text-center">
+        <p class="text-green-400 font-semibold">✅ Você votou!</p>
+        <p class="text-slate-400 text-sm mt-1">Aguardando seu time terminar de votar...</p>
+      </div>
+
+      <!-- Progresso da votação -->
+      <div class="bg-slate-800/30 rounded-xl p-4 mb-6">
+        <div class="flex items-center justify-between mb-2">
+          <span class="text-slate-400 text-sm">Votos na sua sala:</span>
+          <span class="text-white font-bold"><%= voted_count %>/<%= total_in_room %></span>
+        </div>
+        <div class="w-full bg-slate-700 rounded-full h-2">
+          <div class="bg-amber-500 h-2 rounded-full transition-all" style="width: <%= (voted_count.to_f / total_in_room * 100).round %>%"></div>
+        </div>
+      </div>
+
+      <!-- Lista mostrando quem votou -->
+      <h3 class="text-sm font-semibold text-slate-400 mb-3 uppercase">Votos registrados</h3>
+      <div class="space-y-2 mb-20">
+        <% room_players.each do |p| %>
+          <% votes_for_player = vote_counts[p.id] || 0 %>
+          <% is_my_vote = player.leader_vote_id == p.id %>
+          <div class="flex items-center gap-3 bg-slate-800/30 rounded-xl px-4 py-3
+            <%= is_my_vote ? 'border-2 border-amber-500' : 'border border-transparent' %>">
             <div class="w-10 h-10 rounded-full bg-gradient-to-br from-slate-600 to-slate-700 flex items-center justify-center text-lg">
-              <% if p.is_leader %>
-                👑
-              <% else %>
-                <%= p.name.chars.first.upcase %>
-              <% end %>
+              <%= p.name.chars.first.upcase %>
             </div>
-            <div class="flex-1 text-left">
+            <div class="flex-1">
               <p class="font-semibold text-white">
                 <%= p.name %>
                 <% if p.id == player.id %>
@@ -85,15 +107,87 @@
                 <% end %>
               </p>
             </div>
-            <% if p.is_leader %>
-              <span class="text-amber-400 text-sm font-semibold">Líder</span>
-            <% else %>
-              <span class="text-slate-500 text-sm">Votar</span>
+            <% if is_my_vote %>
+              <span class="text-amber-400 text-sm font-semibold">Seu voto</span>
             <% end %>
-          </button>
+            <span class="text-slate-400 text-sm"><%= votes_for_player %> voto(s)</span>
+          </div>
         <% end %>
-      <% end %>
+      </div>
     </div>
-  </div>
+
+  <% elsif all_my_room_voted && has_tie %>
+    <!-- ESTADO: Empate - votar novamente -->
+    <div class="flex-1 flex flex-col">
+      <div class="bg-red-500/10 border border-red-500/30 rounded-xl p-4 mb-6 text-center">
+        <p class="text-red-400 font-semibold">⚠️ Empate na votação!</p>
+        <p class="text-slate-400 text-sm mt-1">Votem novamente para desempatar.</p>
+      </div>
+
+      <h3 class="text-sm font-semibold text-slate-400 mb-3 uppercase">Vote novamente</h3>
+      <div class="space-y-2 mb-20">
+        <% room_players.each do |p| %>
+          <%= form_with url: select_leader_game_path(game), method: :post, class: "block" do %>
+            <input type="hidden" name="leader_id" value="<%= p.id %>">
+            <button type="submit" class="w-full flex items-center gap-3 bg-slate-800/30 hover:bg-slate-700/50 rounded-xl px-4 py-3 transition-all border border-transparent hover:border-amber-500/50">
+              <div class="w-10 h-10 rounded-full bg-gradient-to-br from-slate-600 to-slate-700 flex items-center justify-center text-lg">
+                <%= p.name.chars.first.upcase %>
+              </div>
+              <div class="flex-1 text-left">
+                <p class="font-semibold text-white">
+                  <%= p.name %>
+                  <% if p.id == player.id %>
+                    <span class="text-amber-400 text-sm">(você)</span>
+                  <% end %>
+                </p>
+              </div>
+              <span class="text-amber-400 text-sm">Votar →</span>
+            </button>
+          <% end %>
+        <% end %>
+      </div>
+    </div>
+
+  <% else %>
+    <!-- ESTADO 1: Ainda não votei -->
+    <div class="flex-1 flex flex-col">
+      <!-- Progresso da votação -->
+      <div class="bg-slate-800/30 rounded-xl p-4 mb-6">
+        <div class="flex items-center justify-between mb-2">
+          <span class="text-slate-400 text-sm">Votos na sua sala:</span>
+          <span class="text-white font-bold"><%= voted_count %>/<%= total_in_room %></span>
+        </div>
+        <div class="w-full bg-slate-700 rounded-full h-2">
+          <div class="bg-amber-500 h-2 rounded-full transition-all" style="width: <%= (voted_count.to_f / total_in_room * 100).round %>%"></div>
+        </div>
+        <p class="text-amber-400 text-sm mt-2 text-center">Escolha alguém abaixo</p>
+      </div>
+
+      <h3 class="text-sm font-semibold text-slate-400 mb-3 uppercase">Vote em quem deve ser líder</h3>
+      <div class="space-y-2 mb-20">
+        <% room_players.each do |p| %>
+          <%= form_with url: select_leader_game_path(game), method: :post, class: "block" do %>
+            <input type="hidden" name="leader_id" value="<%= p.id %>">
+            <button type="submit" class="w-full flex items-center gap-3 bg-slate-800/30 hover:bg-slate-700/50 rounded-xl px-4 py-3 transition-all border border-transparent hover:border-amber-500/50">
+              <div class="w-10 h-10 rounded-full bg-gradient-to-br from-slate-600 to-slate-700 flex items-center justify-center text-lg">
+                <%= p.name.chars.first.upcase %>
+              </div>
+              <div class="flex-1 text-left">
+                <p class="font-semibold text-white">
+                  <%= p.name %>
+                  <% if p.id == player.id %>
+                    <span class="text-amber-400 text-sm">(você)</span>
+                  <% end %>
+                </p>
+              </div>
+              <span class="text-amber-400 text-sm">Votar →</span>
+            </button>
+          <% end %>
+        <% end %>
+      </div>
+    </div>
+  <% end %>
 </div>
 
+<!-- Auto-refresh para atualizar votos -->
+<div data-controller="refresh" data-refresh-interval-value="2000" data-refresh-url-value="<%= game_path(game) %>"></div>

@@ -1,4 +1,4 @@
-<div class="flex-1 flex flex-col px-6 py-8">
+<div class="flex-1 flex flex-col px-6 py-8" data-controller="modal">
   <!-- Header com código -->
   <div class="text-center mb-8">
     <p class="text-slate-400 text-sm uppercase tracking-wide mb-2">Código da Sala</p>
@@ -33,6 +33,16 @@
               <% end %>
             </p>
           </div>
+          <% if p.id == player.id %>
+            <button
+              type="button"
+              data-action="click->modal#open"
+              data-modal-id="edit-name-modal"
+              class="text-slate-400 hover:text-amber-400 text-sm transition-colors"
+            >
+              ✏️
+            </button>
+          <% end %>
           <% if p.is_creator %>
             <span class="text-amber-400 text-sm">👑 Host</span>
           <% end %>
@@ -81,12 +91,20 @@
       </div>
     <% end %>
 
-    <%= button_to leave_game_path(game), method: :delete, data: { turbo_confirm: "Tem certeza que deseja sair?" }, class: "w-full py-3 text-red-400 hover:text-red-300 font-semibold transition-colors" do %>
-      Sair da Sala
+    <% if player.is_creator %>
+      <%= button_to leave_game_path(game), method: :delete, data: { turbo_confirm: "Tem certeza que deseja APAGAR a sala? Todos os jogadores serão removidos." }, class: "w-full py-3 text-red-400 hover:text-red-300 font-semibold transition-colors" do %>
+        🗑️ Apagar Sala
+      <% end %>
+    <% else %>
+      <%= button_to leave_game_path(game), method: :delete, data: { turbo_confirm: "Tem certeza que deseja sair?" }, class: "w-full py-3 text-red-400 hover:text-red-300 font-semibold transition-colors" do %>
+        Sair da Sala
+      <% end %>
     <% end %>
   </div>
 </div>
 
+<!-- Modal de editar nome -->
+<%= render 'shared/edit_name_modal', player: player %>
+
 <!-- Auto-refresh para atualizar lista de jogadores -->
 <div data-controller="refresh" data-refresh-interval-value="3000" data-refresh-url-value="<%= game_path(game) %>"></div>
-
