@@ -211,6 +211,18 @@ class GamesController < ApplicationController
     redirect_to @game
   end
 
+  def room_change_expired
+    @game = Game.find(params[:id])
+  
+    if @game.status == 'room_change' && @game.room_change_time_remaining <= 0
+      @game.update!(last_exchange_info: nil, room_change_ends_at: nil)
+      @game.start_next_round!
+      broadcast_game_update
+    end
+  
+    head :ok
+  end
+
   def exchange
     redirect_to @game
   end
@@ -293,47 +305,61 @@ class GamesController < ApplicationController
   def try_execute_exchange!
     @game.reload
     
-    # Verifica se ainda há gárgulas pendentes de decisão
     pending = @game.parsed_gargoyle_pending || {}
     if pending.values.any?(&:nil?)
-      return # Ainda há gárgulas que não decidiram
+      return
     end
     
-    # Verifica se ambas as salas confirmaram seus reféns
     r1_total = @game.room_1_players.count
     r1_req = r1_total > 1 ? @game.hostages_for_current_round : 0
     r1_ready = @game.room_1_players.where(is_hostage: true).count == r1_req
-
+  
     r2_total = @game.room_2_players.count
     r2_req = r2_total > 1 ? @game.hostages_for_current_round : 0
     r2_ready = @game.room_2_players.where(is_hostage: true).count == r2_req
-
+  
     return unless r1_ready && r2_ready
-
+  
     hostages_1 = @game.room_1_players.where(is_hostage: true)
     hostages_2 = @game.room_2_players.where(is_hostage: true)
-
-    # Filtra gárgulas que recusaram
+  
+    # Identifica gárgulas que recusaram
+    gargoyles_refused = []
+    
     ids_to_move_1 = hostages_1.reject do |p|
-      if p.role&.include?('gargoyle')
-        pending[p.id.to_s] == 'refused'
+      if p.role&.include?('gargoyle') && pending[p.id.to_s] == 'refused'
+        gargoyles_refused << { id: p.id, name: p.name, from_room: 1 }
+        true
       else
         false
       end
     end.map(&:id)
-
+  
     ids_to_move_2 = hostages_2.reject do |p|
-      if p.role&.include?('gargoyle')
-        pending[p.id.to_s] == 'refused'
+      if p.role&.include?('gargoyle') && pending[p.id.to_s] == 'refused'
+        gargoyles_refused << { id: p.id, name: p.name, from_room: 2 }
+        true
       else
         false
       end
     end.map(&:id)
+    
+    # Monta info da troca para exibir na tela de transição
+    exchange_info = {
+      going_to_room_1: @game.players.where(id: ids_to_move_2).pluck(:id, :name).map { |id, name| { id: id, name: name } },
+      going_to_room_2: @game.players.where(id: ids_to_move_1).pluck(:id, :name).map { |id, name| { id: id, name: name } },
+      gargoyles_refused: gargoyles_refused
+    }
+    
+    # Executa a troca de salas
+    @game.players.where(id: ids_to_move_1).update_all(room: 2)
+    @game.players.where(id: ids_to_move_2).update_all(room: 1)
     
     # Limpa as decisões pendentes
     @game.update!(gargoyle_pending_decisions: nil)
     
-    @game.exchange_hostages!(ids_to_move_1, ids_to_move_2)
+    # Vai para a tela de transição (ao invés de start_next_round!)
+    @game.start_room_change!(exchange_info)
   end
 
   def handle_usurp_ability

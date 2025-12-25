@@ -1,0 +1,102 @@
+<%
+exchange_info = game.parsed_last_exchange_info
+going_to_room_1 = exchange_info['going_to_room_1'] || []
+going_to_room_2 = exchange_info['going_to_room_2'] || []
+gargoyles_refused = exchange_info['gargoyles_refused'] || []
+
+my_room = player.room
+i_need_to_move = going_to_room_1.any? { |p| p['id'] == player.id } || going_to_room_2.any? { |p| p['id'] == player.id }
+my_new_room = going_to_room_1.any? { |p| p['id'] == player.id } ? 1 : (going_to_room_2.any? { |p| p['id'] == player.id } ? 2 : my_room)
+%>
+
+<div class="flex-1 flex flex-col px-4 py-6">
+  <div class="text-center mb-6">
+    <div class="inline-flex items-center gap-2 bg-amber-500/20 rounded-full px-4 py-2 mb-3">
+      <span class="text-2xl">🚪</span>
+      <span class="font-display text-lg font-bold text-amber-400">Troca de Sala</span>
+    </div>
+    
+    <!-- Timer -->
+    <div class="text-4xl font-bold text-white mb-2" 
+         data-controller="timer" 
+         data-timer-seconds-value="<%= game.room_change_time_remaining %>"
+         data-timer-expired-url-value="<%= room_change_expired_game_path(game) %>"
+     >
+      <span data-timer-target="display"></span>
+    </div>
+    <p class="text-slate-400 text-sm">Tempo para trocar de sala</p>
+  </div>
+
+  <% if i_need_to_move %>
+    <!-- JOGADOR PRECISA MUDAR DE SALA -->
+    <div class="bg-gradient-to-br from-amber-900/40 to-red-900/40 border-2 border-amber-500 rounded-2xl p-6 text-center mb-6 animate-pulse">
+      <div class="text-6xl mb-4">🏃‍♂️➡️🚪</div>
+      <h2 class="font-display text-2xl font-bold text-amber-400 mb-2">VÁ PARA A SALA <%= my_new_room %>!</h2>
+      <p class="text-white text-lg">Você foi trocado como refém. Mude de sala agora!</p>
+    </div>
+  <% else %>
+    <!-- JOGADOR FICA NA MESMA SALA -->
+    <div class="bg-slate-800/30 border border-slate-600 rounded-2xl p-6 text-center mb-6">
+      <div class="text-5xl mb-4">🏠</div>
+      <h2 class="font-display text-xl font-bold text-slate-300 mb-2">Você permanece na Sala <%= my_room %></h2>
+      <p class="text-slate-400">Aguarde os jogadores trocarem de sala...</p>
+    </div>
+  <% end %>
+
+  <!-- INFO PARA LÍDERES SOBRE GÁRGULAS -->
+  <% if player.is_leader && gargoyles_refused.any? %>
+    <% my_room_gargoyles = gargoyles_refused.select { |g| g['from_room'] == player.room } %>
+    <% if my_room_gargoyles.any? %>
+      <div class="bg-red-500/10 border border-red-500/30 rounded-xl p-4 mb-6">
+        <div class="flex items-center gap-2 mb-2">
+          <span class="text-2xl">🗿</span>
+          <h3 class="font-bold text-red-400">Gárgula usou habilidade!</h3>
+        </div>
+        <% my_room_gargoyles.each do |g| %>
+          <p class="text-slate-300">
+            <strong><%= g['name'] %></strong> recusou ir como refém e permaneceu na sala.
+          </p>
+        <% end %>
+      </div>
+    <% end %>
+  <% end %>
+
+  <!-- LISTA DE QUEM ESTÁ MUDANDO -->
+  <div class="grid grid-cols-2 gap-4 mb-6">
+    <div class="bg-blue-500/10 border border-blue-500/30 rounded-xl p-4">
+      <h3 class="text-blue-400 font-semibold text-center mb-3">➡️ Indo para Sala 1</h3>
+      <% if going_to_room_1.any? %>
+        <div class="space-y-2">
+          <% going_to_room_1.each do |p| %>
+            <div class="flex items-center gap-2 bg-slate-800/50 rounded-lg px-3 py-2">
+              <div class="w-8 h-8 rounded-full bg-blue-500/30 flex items-center justify-center text-sm">
+                <%= p['name'].chars.first.upcase %>
+              </div>
+              <span class="text-white text-sm font-medium"><%= p['name'] %></span>
+            </div>
+          <% end %>
+        </div>
+      <% else %>
+        <p class="text-slate-500 text-center text-sm">Ninguém</p>
+      <% end %>
+    </div>
+
+    <div class="bg-purple-500/10 border border-purple-500/30 rounded-xl p-4">
+      <h3 class="text-purple-400 font-semibold text-center mb-3">➡️ Indo para Sala 2</h3>
+      <% if going_to_room_2.any? %>
+        <div class="space-y-2">
+          <% going_to_room_2.each do |p| %>
+            <div class="flex items-center gap-2 bg-slate-800/50 rounded-lg px-3 py-2">
+              <div class="w-8 h-8 rounded-full bg-purple-500/30 flex items-center justify-center text-sm">
+                <%= p['name'].chars.first.upcase %>
+              </div>
+              <span class="text-white text-sm font-medium"><%= p['name'] %></span>
+            </div>
+          <% end %>
+        </div>
+      <% else %>
+        <p class="text-slate-500 text-center text-sm">Ninguém</p>
+      <% end %>
+    </div>
+  </div>
+</div>

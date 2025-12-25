@@ -20,6 +20,7 @@ Rails.application.routes.draw do
       post :usurp_leadership
       post :select_hostages
       post :gargoyle_decision
+      post :room_change_expired
       post :exchange
       post :exit_game
       delete :abandon

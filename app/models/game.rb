@@ -5,7 +5,7 @@ class Game < ApplicationRecord
   has_many :card_shares, dependent: :destroy
 
   validates :code, presence: true, uniqueness: true
-  validates :status, inclusion: { in: %w[waiting playing leader_selection hostage_exchange finished] }
+  validates :status, inclusion: { in: %w[waiting playing leader_selection hostage_exchange finished room_change] }
   validates :round_time, numericality: { greater_than: 0 }
   validates :total_rounds, numericality: { greater_than_or_equal_to: 0, less_than_or_equal_to: 5 }
   validates :role_selection_mode, inclusion: { in: %w[manual all by_players random] }, allow_nil: true
@@ -97,9 +97,20 @@ class Game < ApplicationRecord
     players.find_by(room: 2, is_leader: true)
   end
 
+  def room_change_time_remaining
+    return 0 unless room_change_ends_at
+    remaining = (room_change_ends_at - Time.current).to_i
+    [remaining, 0].max
+  end
+
   def parsed_gargoyle_pending
     return {} if gargoyle_pending_decisions.blank?
     JSON.parse(gargoyle_pending_decisions) rescue {}
+  end
+
+  def parsed_last_exchange_info
+    return {} if last_exchange_info.blank?
+    JSON.parse(last_exchange_info) rescue {}
   end
 
   def parsed_selected_roles
@@ -155,6 +166,14 @@ class Game < ApplicationRecord
     # Limpa votos anteriores
     players.update_all(leader_vote_id: nil, is_leader: false)
     update!(status: 'leader_selection')
+  end
+
+  def start_room_change!(exchange_info)
+    update!(
+      status: 'room_change',
+      last_exchange_info: exchange_info.to_json,
+      room_change_ends_at: Time.current + 30.seconds
+    )
   end
 
   # Contagem de votos para líder em uma sala (considera Soldado com voto duplo)

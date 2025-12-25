@@ -9,6 +9,8 @@
   <%= render 'games/leader_selection', game: game, player: player %>
 <% when 'hostage_exchange' %>
   <%= render 'games/hostage_exchange', game: game, player: player %>
+<% when 'room_change' %>
+  <%= render 'games/room_change', game: game, player: player %>
 <% when 'finished' %>
   <%= render 'games/finished', game: game, player: player %>
 <% end %>
