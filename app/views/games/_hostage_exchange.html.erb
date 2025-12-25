@@ -72,15 +72,7 @@ leader_already_confirmed = is_leader_alone || (current_hostages.count == require
               <div class="flex-1">
                 <p class="font-semibold text-white"><%= p.name %></p>
               </div>
-              
-              <% if p.role&.include?('gargoyle') %>
-                <div class="text-right leading-tight">
-                  <span class="block text-red-400 text-sm font-bold">⛔ Fica na Sala</span>
-                  <span class="block text-[10px] text-red-300/60 uppercase tracking-wider">Gárgula</span>
-                </div>
-              <% else %>
-                <span class="text-purple-400 text-sm font-bold">➡️ Vai trocar</span>
-              <% end %>
+              <span class="text-purple-400 text-sm font-bold">➡️ Vai trocar</span>
             </div>
           <% end %>
         </div>
