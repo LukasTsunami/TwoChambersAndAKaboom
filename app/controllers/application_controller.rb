@@ -4,6 +4,8 @@ class ApplicationController < ActionController::Base
 
   helper_method :current_player
 
+  rescue_from ActionController::InvalidAuthenticityToken, with: :handle_invalid_token
+
   private
 
   def current_player
@@ -24,5 +26,10 @@ class ApplicationController < ActionController::Base
     unless current_player&.game
       redirect_to root_path, alert: 'Você não está em nenhum jogo.'
     end
+  end
+
+  def handle_invalid_token
+    session.delete(:player_id)
+    redirect_to root_path, alert: 'Sua sessão expirou. Por favor, entre novamente.'
   end
 end
