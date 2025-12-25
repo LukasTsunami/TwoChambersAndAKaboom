@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2024_12_23_000007) do
+ActiveRecord::Schema[8.1].define(version: 2025_12_24_233512) do
   create_table "card_shares", force: :cascade do |t|
     t.datetime "created_at", null: false
     t.integer "from_player_id", null: false
@@ -38,6 +38,7 @@ ActiveRecord::Schema[8.1].define(version: 2024_12_23_000007) do
     t.string "status", default: "waiting"
     t.integer "total_rounds", default: 3
     t.datetime "updated_at", null: false
+    t.string "usurp_message"
     t.string "winning_team"
     t.index ["code"], name: "index_games_on_code", unique: true
   end

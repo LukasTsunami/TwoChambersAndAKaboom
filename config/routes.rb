@@ -17,6 +17,7 @@ Rails.application.routes.draw do
     member do
       post :start
       post :select_leader
+      post :usurp_leadership
       post :select_hostages
       post :exchange
       post :exit_game

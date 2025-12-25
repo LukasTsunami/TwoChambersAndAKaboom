@@ -114,7 +114,7 @@ class Player < ApplicationRecord
     when /gargoyle/
       'Você pode escolher não ser mandado como refém para a outra sala. Outro jogador deve ir no seu lugar.'
     when /pirate/
-      'Uma vez por jogo, antes da última rodada, você pode escolher um jogador para ser obrigado a ser mandado como refém.'
+      'Uma vez por jogo, antes da última rodada, você pode escolher um jogador para ser obrigado a ir pra outra sala imediatamente.'
     when /enlisted/
       'Uma vez por jogo, antes da última rodada, você pode escolher a si mesmo para ser mandado como refém.'
     when /citizen/

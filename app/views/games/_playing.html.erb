@@ -109,6 +109,12 @@
         <button type="submit" name="guess" value="red" class="flex-1 py-3 bg-red-600 hover:bg-red-500 text-white font-bold rounded-lg transition-all">
           🔴 Vermelho
         </button>
+        <button type="submit" name="guess" value="black" class="flex-1 py-3 bg-black hover:bg-black-500 text-white font-bold rounded-lg transition-all">
+          ⚫ Preto
+        </button>
+        <button type="submit" name="guess" value="green" class="flex-1 py-3 bg-green-600 hover:bg-green-500 text-white font-bold rounded-lg transition-all">
+          🟢 Verde
+        </button>
       <% end %>
     </div>
   <% elsif player.role == 'gambler' && player.gambler_guess.present? %>

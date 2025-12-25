@@ -3,6 +3,8 @@
   voted_count = room_players.where.not(leader_vote_id: nil).count
   total_in_room = room_players.count
   player_voted = player.leader_vote_id.present?
+  player_is_soldier = player.role == 'soldier'
+  player_is_usurper = player.role == 'usurper'
   vote_counts = game.vote_counts_for_room(player.room)
   my_room_leader = player.room == 1 ? game.room_1_leader : game.room_2_leader
   other_room_leader = player.room == 1 ? game.room_2_leader : game.room_1_leader
@@ -20,25 +22,21 @@
     <p class="text-slate-400">Sala <%= player.room %> - Rodada <%= game.current_round %></p>
   </div>
 
-  <!-- Card do papel (mini) -->
-  <div class="flex justify-center mb-6">
-    <div
-      id="player-card-mini"
-      class="card-flip w-24 h-32 cursor-pointer"
-      onclick="this.classList.toggle('flipped')"
-    >
-      <div class="card-flip-inner relative w-full h-full">
-        <div class="card-front absolute inset-0 bg-gradient-to-br from-slate-700 to-slate-800 rounded-xl border-2 border-slate-600 flex items-center justify-center">
-          <span class="text-2xl">🎴</span>
-        </div>
-        <div class="card-back absolute inset-0 rounded-xl border-2 flex flex-col items-center justify-center
-          <%= player.team == 'blue' ? 'bg-gradient-to-br from-blue-900 to-blue-950 border-blue-500' : 'bg-gradient-to-br from-red-900 to-red-950 border-red-500' %>">
-          <span class="text-3xl"><%= player.role_icon %></span>
-          <span class="text-xs text-white mt-1"><%= player.role_name %></span>
-        </div>
-      </div>
+  <% if !player_voted %>
+  <div class="flex-1 flex flex-col">
+    <div class="bg-amber-500/10 border border-amber-500/30 rounded-xl p-4 mb-6 text-center">
+      <p class="text-amber-400 font-semibold">O líder escolhe quem vai pra outra sala</p>
     </div>
   </div>
+  <% end %>
+
+  <% if player_is_soldier %>
+  <div class="flex-1 flex flex-col">
+    <div class="bg-blue-500/10 border border-blue-500/30 rounded-xl p-4 mb-6 text-center">
+      <p class="text-blue-400 font-semibold">Você é um soldado, seu voto vale por 2 votos na escolha do líder!</p>
+    </div>
+  </div>
+  <% end %>
 
   <% if my_room_leader %>
     <!-- ESTADO 3: Líder do meu time foi escolhido -->

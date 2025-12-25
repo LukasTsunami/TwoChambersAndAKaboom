@@ -1,6 +1,6 @@
 class GamesController < ApplicationController
   before_action :require_player!
-  before_action :set_game, only: [:show, :start, :select_leader, :select_hostages, :exchange, :ability]
+  before_action :set_game, only: [:show, :start, :select_leader, :usurp_leadership, :select_hostages, :exchange, :ability]
 
   def new
     @game = Game.new
@@ -87,6 +87,47 @@ class GamesController < ApplicationController
     redirect_to @game
   end
 
+  def usurp_leadership
+    @game = Game.find(params[:id])
+
+    unless current_player.role&.include?('usurper')
+      redirect_to @game, alert: "Apenas a Usurpadora pode fazer isso."
+      return
+    end
+
+    if current_player.is_leader
+      redirect_to @game, alert: "Você já é o líder!"
+      return
+    end
+
+    ActiveRecord::Base.transaction do
+      # 1. Destitui líder anterior
+      old_leader = @game.players.find_by(room: current_player.room, is_leader: true)
+      old_leader_name = old_leader ? old_leader.name : "Ninguém"
+      
+      if old_leader
+        old_leader.update!(is_leader: false)
+        # Limpa reféns selecionados pelo antigo líder
+        @game.players.where(room: current_player.room).update_all(is_hostage: false)
+      end
+      
+      # 2. Promove Usurpadora
+      current_player.update!(is_leader: true)
+      
+      # 3. SALVA A MENSAGEM NO BANCO (Para todos verem)
+      message = "👑 GOLPE DE ESTADO! #{current_player.name} roubou a liderança de #{old_leader_name}!"
+      @game.update!(usurp_message: message)
+      
+      # Opcional: current_player.update!(ability_used: true)
+    end
+
+    # Força reload e avisa a todos
+    @game.reload
+    broadcast_game_update
+    
+    redirect_to @game
+  end
+    
   def select_hostages
     unless current_player.is_leader
       redirect_to @game, alert: 'Apenas o líder pode selecionar reféns.'
@@ -94,24 +135,64 @@ class GamesController < ApplicationController
     end
 
     hostage_ids = params[:hostage_ids] || []
-    required = @game.hostages_for_current_round
+    
+    # 1. Define quantos são necessários
+    my_room_players = @game.players.where(room: current_player.room)
+    required = my_room_players.count > 1 ? @game.hostages_for_current_round : 0
 
+    # 2. Validação: O líder PRECISA selecionar a quantidade cheia (mesmo que tenha gárgula no meio)
     if hostage_ids.size != required
       redirect_to @game, alert: "Selecione exatamente #{required} refém(s)."
       return
     end
 
-    @game.players.where(room: current_player.room, is_hostage: true).update_all(is_hostage: false)
-    @game.players.where(id: hostage_ids, room: current_player.room).update_all(is_hostage: true)
+    # 3. Limpa seleções anteriores
+    my_room_players.update_all(is_hostage: false)
 
+    # 4. TRUQUE: Salvamos TODOS como reféns (inclusive a Gárgula)
+    # Isso é necessário para que a flag 'r1_ready' lá embaixo dê 'true'.
+    if hostage_ids.any?
+      @game.players.where(id: hostage_ids).update_all(is_hostage: true)
+    end
+
+    # 5. Verifica se tem Gárgula apenas para mostrar a mensagem
+    gargoyles = @game.players.where(id: hostage_ids).select { |p| p.role == 'gargoyle' }
+
+    if gargoyles.any?
+      names = gargoyles.map(&:name).join(", ")
+      flash[:alert] = "🛡️ HABILIDADE ATIVADA: #{names} é uma Gárgula e ficará na sala! O time perdeu esse slot de troca."
+    else
+      flash[:notice] = "Reféns confirmados. Aguardando a outra sala..."
+    end
+
+    # 6. Tenta executar a troca
     @game.reload
-    room1_hostages = @game.room_1_players.where(is_hostage: true)
-    room2_hostages = @game.room_2_players.where(is_hostage: true)
+    
+    # Verifica Sala 1 (Usa a contagem bruta do banco, incluindo gárgulas marcadas)
+    r1_total = @game.room_1_players.count
+    r1_req = r1_total > 1 ? @game.hostages_for_current_round : 0
+    r1_ready = @game.room_1_players.where(is_hostage: true).count == r1_req
 
-    if room1_hostages.count == required && room2_hostages.count == required
-      room1_hostage_ids = room1_hostages.pluck(:id)
-      room2_hostage_ids = room2_hostages.pluck(:id)
-      @game.exchange_hostages!(room1_hostage_ids, room2_hostage_ids)
+    # Verifica Sala 2
+    r2_total = @game.room_2_players.count
+    r2_req = r2_total > 1 ? @game.hostages_for_current_round : 0
+    r2_ready = @game.room_2_players.where(is_hostage: true).count == r2_req
+
+    if r1_ready && r2_ready
+      # AQUI ACONTECE A MÁGICA
+      # Recuperamos os reféns marcados
+      hostages_1 = @game.room_1_players.where(is_hostage: true)
+      hostages_2 = @game.room_2_players.where(is_hostage: true)
+
+      # FILTRAMOS AS GÁRGULAS ANTES DE MANDAR PARA O MÉTODO DE TROCA
+      # Elas estão marcadas como hostage (para contar como 'pronto'), mas não serão enviadas.
+      ids_to_move_1 = hostages_1.reject { |p| p.role == 'gargoyle' }.map(&:id)
+      ids_to_move_2 = hostages_2.reject { |p| p.role == 'gargoyle' }.map(&:id)
+      
+      @game.exchange_hostages!(ids_to_move_1, ids_to_move_2)
+      
+      # Opcional: Limpar o status de hostage da gárgula após a troca para não confundir na próxima rodada
+      # (Se o seu método exchange_hostages! já reseta tudo no final, não precisa fazer nada aqui)
     end
 
     broadcast_game_update
@@ -267,10 +348,10 @@ class GamesController < ApplicationController
       return
     end
 
-    target.update!(is_hostage: true)
+    target.update!(room: current_player.room == 1 ? 2 : 1)
     current_player.update!(ability_used: true)
     broadcast_game_update
-    redirect_to @game, notice: "#{target.name} foi enviado para a prancha!"
+    redirect_to @game, notice: "#{target.name} foi enviado para a prancha! (Vá para a outra sala imediatamente)"
   end
 
   def handle_agent_ability
