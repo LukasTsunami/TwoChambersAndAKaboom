@@ -20,7 +20,8 @@ export default class extends Controller {
     event.preventDefault()
     event.stopPropagation()
 
-    // Find the closest modal container
+    // Já que clico num elemento x posicionado absolute na página, preciso procurar o container
+    // de modal mais próximo na dom pra fechar
     const modal = event.currentTarget.closest("[id$='-modal']")
 
     if (modal) {
@@ -30,7 +31,7 @@ export default class extends Controller {
   }
 
   closeBackground(event) {
-    // Only close if clicking the background itself, not the content
+    // Só fecha ao clicar no lugar certo
     if (event.target === event.currentTarget) {
       event.preventDefault()
       event.stopPropagation()

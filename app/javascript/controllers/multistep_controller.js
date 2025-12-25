@@ -24,12 +24,15 @@ export default class extends Controller {
       this.modeValue = "login"
       this.goToStep(2)
     } else {
+      // Se não veio nome preenchido ou não for login, eu preciso ver
+      // se o nome já existe ou não
       this.goToStep(1)
     }
   }
 
   // Step 1: Verificar nome e ir para step 2
   async checkName(event) {
+    // Como estou usando turbo:false preciso evitar que o formulário seja enviado automaticamente
     event.preventDefault()
 
     const name = this.nameInputTarget.value.trim()
@@ -42,8 +45,8 @@ export default class extends Controller {
     try {
       const response = await fetch(`/players/check_name?name=${encodeURIComponent(name)}`)
       const data = await response.json()
-
-      if (data.exists) {
+      const playerExists = data?.exists ?? false
+      if (playerExists) {
         this.modeValue = "login"
       } else {
         this.modeValue = "create"
@@ -51,19 +54,21 @@ export default class extends Controller {
 
       this.goToStep(2)
     } catch (error) {
-      // Se falhar a verificação, assume novo usuário
-      this.modeValue = "create"
-      this.goToStep(2)
+      // Se falhar a verificação, força voltar para o step 1
+      this.showError("Ocorreu um erro ao verificar o nome, por favor tente novamente")
+      this.goToStep(1)
     }
   }
 
   // Step 2: Verificar PIN e ir para step 3
   async checkPin(event) {
+    // Como estou usando turbo:false preciso evitar que o formulário seja enviado automaticamente
     event.preventDefault()
 
     const pin = this.pinInputTarget.value.trim()
-    if (!pin || !/^\d{3}$/.test(pin)) {
-      this.showError("PIN deve ter exatamente 3 dígitos")
+    const pinHasThreeDigits = /^\d{3}$/.test(pin)
+    if (!pin || !pinHasThreeDigits) {
+      this.showError("O PIN deve ter exatamente 3 dígitos")
       return
     }
 

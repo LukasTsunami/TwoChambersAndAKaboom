@@ -1,0 +1,15 @@
+<p class="text-slate-300 text-sm mb-3">
+  Force um jogador a fazer card share com você (uma vez por rodada).
+</p>
+<%= form_with url: ability_game_path(game, ability: 'force_share'), method: :post, class: "space-y-3" do %>
+  <select name="target_player_id" class="w-full px-4 py-3 bg-slate-800 border border-slate-600 rounded-lg text-white">
+    <option value="">Selecione um jogador...</option>
+    <% game.players.where(room: player.room).where.not(id: player.id).each do |p| %>
+      <option value="<%= p.id %>"><%= p.name %></option>
+    <% end %>
+  </select>
+  <button type="submit" class="w-full py-3 bg-amber-600 hover:bg-amber-500 text-white font-bold rounded-lg transition-all">
+    🕵️ Forçar Card Share
+  </button>
+<% end %>
+

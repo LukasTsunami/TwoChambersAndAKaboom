@@ -1,0 +1,258 @@
+<!-- Modal de Papéis -->  
+<div id="roles-modal" class="hidden fixed inset-0 z-50" data-controller="modal">
+  <div 
+    class="absolute inset-0 bg-black/80 backdrop-blur-sm cursor-pointer"
+    data-action="click->modal#closeBackground"
+  ></div>
+
+  <div class="absolute inset-0 overflow-y-auto pointer-events-none">
+    <div class="min-h-full flex items-start justify-center p-4 pt-8 pb-8 pointer-events-auto">
+      
+      <div class="relative bg-gradient-to-br from-slate-800 to-slate-900 rounded-2xl w-full max-w-lg shadow-2xl border border-slate-700">
+        
+        <div class="sticky top-0 bg-slate-800/95 backdrop-blur-sm px-6 py-4 border-b border-slate-700 flex items-center justify-between z-10 rounded-t-2xl">
+          <h2 class="font-display text-xl font-bold text-white flex items-center gap-2">
+            📖 Guia de Papéis
+          </h2>
+          
+          <button 
+            type="button"
+            data-action="click->modal#close"
+            class="text-slate-400 hover:text-white text-2xl transition-colors p-2"
+          >
+            ✕
+          </button>
+        </div>
+        
+        <div class="p-6" style="background-color: rgba(30, 41, 59, 0.5)">
+          <div class="mb-6">
+            <h3 class="text-lg font-bold text-amber-400 mb-4 flex items-center gap-2">
+              ⭐ Papéis Essenciais
+            </h3>
+            
+            <div class="space-y-3">
+              <div class="bg-blue-900/30 border border-blue-500/30 rounded-xl p-4">
+                <div class="flex items-center gap-3 mb-2">
+                  <span class="text-3xl">👔</span>
+                  <div>
+                    <h4 class="font-bold text-blue-400">Presidente</h4>
+                    <span class="text-xs text-blue-300/70">Time Azul</span>
+                  </div>
+                </div>
+                <p class="text-sm text-slate-300">Seu objetivo é sobreviver. Não esteja na mesma sala que a Bomba no final do jogo.</p>
+              </div>
+              
+              <div class="bg-red-900/30 border border-red-500/30 rounded-xl p-4">
+                <div class="flex items-center gap-3 mb-2">
+                  <span class="text-3xl">💣</span>
+                  <div>
+                    <h4 class="font-bold text-red-400">Bomba</h4>
+                    <span class="text-xs text-red-300/70">Time Vermelho</span>
+                  </div>
+                </div>
+                <p class="text-sm text-slate-300">Seu objetivo é estar na mesma sala que o Presidente no final do jogo para explodir!</p>
+              </div>
+            </div>
+          </div>
+
+          <div class="mb-6">
+            <h3 class="text-lg font-bold text-blue-400 mb-4 flex items-center gap-2">
+              🔵 Especiais do Time Azul
+            </h3>
+            
+            <div class="space-y-3">
+              <div class="bg-slate-800/50 border border-slate-600/30 rounded-xl p-4">
+                <div class="flex items-center gap-3 mb-2">
+                  <span class="text-2xl">⚕️</span>
+                  <h4 class="font-bold text-white">Médico</h4>
+                </div>
+                <p class="text-sm text-slate-300">Precisa fazer card share com o Presidente antes do final do jogo, ou o time azul perde.</p>
+              </div>
+              
+              <div class="bg-slate-800/50 border border-slate-600/30 rounded-xl p-4">
+                <div class="flex items-center gap-3 mb-2">
+                  <span class="text-2xl">🕵️</span>
+                  <h4 class="font-bold text-white">Agente</h4>
+                </div>
+                <p class="text-sm text-slate-300">Uma vez por rodada, revela sua carta em privado e força um jogador a fazer card share com você.</p>
+              </div>
+              
+              <div class="bg-slate-800/50 border border-slate-600/30 rounded-xl p-4">
+                <div class="flex items-center gap-3 mb-2">
+                  <span class="text-2xl">🎖️</span>
+                  <h4 class="font-bold text-white">Soldado</h4>
+                </div>
+                <p class="text-sm text-slate-300">Seu voto conta duas vezes na escolha de líder.</p>
+              </div>
+            </div>
+          </div>
+
+          <div class="mb-6">
+            <h3 class="text-lg font-bold text-red-400 mb-4 flex items-center gap-2">
+              🔴 Especiais do Time Vermelho
+            </h3>
+            
+            <div class="space-y-3">
+              <div class="bg-slate-800/50 border border-slate-600/30 rounded-xl p-4">
+                <div class="flex items-center gap-3 mb-2">
+                  <span class="text-2xl">🧨</span>
+                  <h4 class="font-bold text-white">Dr. Boom</h4>
+                </div>
+                <p class="text-sm text-slate-300">Se fizer card share com o Presidente, o jogo acaba imediatamente e o time vermelho vence.</p>
+              </div>
+              
+              <div class="bg-slate-800/50 border border-slate-600/30 rounded-xl p-4">
+                <div class="flex items-center gap-3 mb-2">
+                  <span class="text-2xl">🔧</span>
+                  <h4 class="font-bold text-white">Engenheiro</h4>
+                </div>
+                <p class="text-sm text-slate-300">Precisa fazer card share com a Bomba antes do final do jogo, ou a bomba não é armada e o time vermelho perde.</p>
+              </div>
+              
+              <div class="bg-slate-800/50 border border-slate-600/30 rounded-xl p-4">
+                <div class="flex items-center gap-3 mb-2">
+                  <span class="text-2xl">⛪</span>
+                  <h4 class="font-bold text-white">Fanático Religioso</h4>
+                </div>
+                <p class="text-sm text-slate-300">Você só ganha se estiver na sala onde a bomba explode no final do jogo.</p>
+              </div>
+            </div>
+          </div>
+
+          <div class="mb-6">
+            <h3 class="text-lg font-bold text-purple-400 mb-4 flex items-center gap-2">
+              ⚔️ Papéis Genéricos (Azul e Vermelho)
+            </h3>
+            
+            <div class="space-y-3">
+              <div class="bg-slate-800/50 border border-slate-600/30 rounded-xl p-4">
+                <div class="flex items-center gap-3 mb-2">
+                  <span class="text-2xl">🔵🔴</span>
+                  <h4 class="font-bold text-white">Cidadão</h4>
+                </div>
+                <p class="text-sm text-slate-300">Não tem habilidade especial. Ajude seu time a vencer!</p>
+              </div>
+              
+              <div class="bg-slate-800/50 border border-slate-600/30 rounded-xl p-4">
+                <div class="flex items-center gap-3 mb-2">
+                  <span class="text-2xl">🕵️</span>
+                  <h4 class="font-bold text-white">Espião</h4>
+                </div>
+                <p class="text-sm text-slate-300">Você conta como membro do time inimigo, mesmo que sua cor seja do seu time original.</p>
+              </div>
+              
+              <div class="bg-slate-800/50 border border-slate-600/30 rounded-xl p-4">
+                <div class="flex items-center gap-3 mb-2">
+                  <span class="text-2xl">🤐</span>
+                  <h4 class="font-bold text-white">Mímico</h4>
+                </div>
+                <p class="text-sm text-slate-300">Não pode falar, apenas se comunicar com gestos.</p>
+              </div>
+              
+              <div class="bg-slate-800/50 border border-slate-600/30 rounded-xl p-4">
+                <div class="flex items-center gap-3 mb-2">
+                  <span class="text-2xl">👑</span>
+                  <h4 class="font-bold text-white">Usurpadora</h4>
+                </div>
+                <p class="text-sm text-slate-300">Uma vez por jogo, na votação para líder e antes da última rodada, pode revelar sua carta e se tornar líder da sua sala.</p>
+              </div>
+              
+              <div class="bg-slate-800/50 border border-slate-600/30 rounded-xl p-4">
+                <div class="flex items-center gap-3 mb-2">
+                  <span class="text-2xl">🦘</span>
+                  <h4 class="font-bold text-white">Canguru</h4>
+                </div>
+                <p class="text-sm text-slate-300">Uma vez por jogo, na etapa de discussão, pode revelar sua carta e ir imediatamente para a outra sala.</p>
+              </div>
+              
+              <div class="bg-slate-800/50 border border-slate-600/30 rounded-xl p-4">
+                <div class="flex items-center gap-3 mb-2">
+                  <span class="text-2xl">🗿</span>
+                  <h4 class="font-bold text-white">Gárgula</h4>
+                </div>
+                <p class="text-sm text-slate-300">Pode escolher não ser mandado como refém para a outra sala. Outro jogador deve ir no seu lugar.</p>
+              </div>
+              
+              <div class="bg-slate-800/50 border border-slate-600/30 rounded-xl p-4">
+                <div class="flex items-center gap-3 mb-2">
+                  <span class="text-2xl">🏴‍☠️</span>
+                  <h4 class="font-bold text-white">Pirata</h4>
+                </div>
+                <p class="text-sm text-slate-300">Uma vez por jogo, antes da última rodada, pode escolher um jogador para ser obrigado a ser mandado como refém.</p>
+              </div>
+              
+              <div class="bg-slate-800/50 border border-slate-600/30 rounded-xl p-4">
+                <div class="flex items-center gap-3 mb-2">
+                  <span class="text-2xl">🙋</span>
+                  <h4 class="font-bold text-white">Alistado</h4>
+                </div>
+                <p class="text-sm text-slate-300">Uma vez por jogo, antes da última rodada, pode escolher a si mesmo para ser mandado como refém.</p>
+              </div>
+            </div>
+          </div>
+
+          <div class="mb-6">
+            <h3 class="text-lg font-bold text-slate-300 mb-4 flex items-center gap-2">
+              ⚫🟢 Jogador Ímpar
+            </h3>
+            <p class="text-sm text-slate-400 mb-4">Quando o número de jogadores é ímpar, um jogador recebe um papel especial que não pertence nem ao time azul nem ao vermelho.</p>
+            
+            <div class="space-y-3">
+              <div class="bg-slate-800/50 border border-slate-500/30 rounded-xl p-4">
+                <div class="flex items-center gap-3 mb-2">
+                  <span class="text-2xl">🥔</span>
+                  <h4 class="font-bold text-white">Batata Quente</h4>
+                  <span class="text-xs bg-slate-700 px-2 py-0.5 rounded-full text-slate-300">Time Preto</span>
+                </div>
+                <p class="text-sm text-slate-300">Quem fizer card share (ou até color share) troca de carta imediatamente com você.</p>
+              </div>
+              
+              <div class="bg-slate-800/50 border border-slate-500/30 rounded-xl p-4">
+                <div class="flex items-center gap-3 mb-2">
+                  <span class="text-2xl">🎰</span>
+                  <h4 class="font-bold text-white">Apostador</h4>
+                  <span class="text-xs bg-slate-700 px-2 py-0.5 rounded-full text-slate-300">Time Preto</span>
+                </div>
+                <p class="text-sm text-slate-300">No final do jogo você tenta adivinhar qual time vai ganhar. Se acertar, você ganha sozinho!</p>
+              </div>
+              
+              <div class="bg-slate-800/50 border border-slate-500/30 rounded-xl p-4">
+                <div class="flex items-center gap-3 mb-2">
+                  <span class="text-2xl">🧠</span>
+                  <h4 class="font-bold text-white">Gênio do Mal</h4>
+                  <span class="text-xs bg-slate-700 px-2 py-0.5 rounded-full text-slate-300">Time Preto</span>
+                </div>
+                <p class="text-sm text-slate-300">Você ganha o jogo se você tiver sido líder de cada uma das salas pelo menos uma vez.</p>
+              </div>
+              
+              <div class="bg-slate-800/50 border border-slate-500/30 rounded-xl p-4">
+                <div class="flex items-center gap-3 mb-2">
+                  <span class="text-2xl">👨‍👧‍👦</span>
+                  <h4 class="font-bold text-white">Padrasto</h4>
+                  <span class="text-xs bg-slate-700 px-2 py-0.5 rounded-full text-slate-300">Time Preto</span>
+                </div>
+                <p class="text-sm text-slate-300">Revele sua carta para dois jogadores no começo do jogo. Diga "vocês são meus filhos". Você ganha se eles estiverem no mesmo quarto no final.</p>
+              </div>
+              
+              <div class="bg-green-900/30 border border-green-500/30 rounded-xl p-4">
+                <div class="flex items-center gap-3 mb-2">
+                  <span class="text-2xl">🧟</span>
+                  <h4 class="font-bold text-white">Zumbi</h4>
+                  <span class="text-xs bg-green-700 px-2 py-0.5 rounded-full text-green-200">Time Verde</span>
+                </div>
+                <p class="text-sm text-slate-300">Você contamina jogadores que compartilharem cartas com você. Vocês ganham se terminarem numa sala só com zumbis e não estiverem sendo explodidos.</p>
+              </div>
+            </div>
+          </div>
+
+          <div class="bg-amber-900/20 border border-amber-500/30 rounded-xl p-4 mt-6">
+            <p class="text-sm text-amber-200">
+              💡 <strong>Dica:</strong> O "Card Share" é quando dois jogadores revelam suas cartas um para o outro. Alguns papéis têm efeitos especiais que são ativados durante o card share!
+            </p>
+          </div>
+        </div>
+      </div> 
+      </div>
+    </div>
+  </div>
+</div>

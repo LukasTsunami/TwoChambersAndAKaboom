@@ -17,13 +17,25 @@ Rails.application.routes.draw do
     member do
       post :start
       post :select_leader
+      post :usurp_leadership
       post :select_hostages
+      post :gargoyle_decision
+      post :room_change_expired
       post :exchange
       post :exit_game
       delete :abandon
       delete :destroy_room
       post :timer_expired
     end
+
+    resources :card_shares, only: [:index, :create] do
+      member do
+        post :accept
+        post :reject
+      end
+    end
+
+    post :ability, on: :member
   end
 
   # Admin routes

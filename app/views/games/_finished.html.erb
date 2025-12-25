@@ -1,17 +1,65 @@
 <div class="flex-1 flex flex-col items-center justify-center px-6 py-12">
-  <% player_won = player.team == game.winning_team %>
+  <% 
+    # Determina se o jogador venceu
+    player_won = player.team == game.winning_team
+    
+    # Verifica vitórias individuais
+    individual_win = false
+    
+    # Apostador acertou?
+    if player.role == 'gambler' && player.gambler_guess == game.winning_team
+      individual_win = true
+    end
+    
+    # Gênio do Mal foi líder em ambas as salas?
+    if player.role == 'evil_genius' && 
+       player.times_was_leader_room1.to_i > 0 && 
+       player.times_was_leader_room2.to_i > 0
+      individual_win = true
+    end
+    
+    # Padrasto - filhos na mesma sala?
+    if player.role == 'stepfather' && player.stepfather_children.present?
+      children_ids = JSON.parse(player.stepfather_children) rescue []
+      children = game.players.where(id: children_ids)
+      if children.count == 2 && children.first.room == children.last.room
+        individual_win = true
+      end
+    end
+    
+    # Fanático - na sala da explosão?
+    president = game.players.find_by(role: 'president')
+    if player.role == 'fanatic' && game.winning_team == 'red' && player.room == president&.room
+      individual_win = true
+    end
+    
+    # Zumbi - sala só com zumbis?
+    if player.role == 'zombie' || player.is_infected?
+      room_players = game.players.where(room: player.room)
+      all_zombies = room_players.all? { |p| p.role == 'zombie' || p.is_infected? }
+      no_bomber = !room_players.exists?(role: 'bomber')
+      if all_zombies && no_bomber
+        individual_win = true
+      end
+    end
+    
+    final_won = player_won || individual_win
+  %>
 
   <!-- Resultado -->
   <div class="text-center mb-8">
-    <% if player_won %>
+    <% if final_won %>
       <div class="text-8xl mb-6 animate-bounce">🎉</div>
       <h1 class="font-display text-4xl font-black text-green-400 mb-2">VITÓRIA!</h1>
+      <% if individual_win && !player_won %>
+        <p class="text-amber-400 text-sm">Vitória individual!</p>
+      <% end %>
     <% else %>
       <div class="text-8xl mb-6">😢</div>
       <h1 class="font-display text-4xl font-black text-red-400 mb-2">DERROTA</h1>
     <% end %>
 
-    <p class="text-slate-400 text-lg">
+    <p class="text-slate-400 text-lg mt-4">
       <% if game.winning_team == 'red' %>
         💥 A Bomba explodiu o Presidente!
       <% else %>
@@ -22,11 +70,32 @@
 
   <!-- Time vencedor -->
   <div class="w-full max-w-sm mb-8">
-    <div class="rounded-2xl p-6 text-center
-      <%= game.winning_team == 'blue' ? 'bg-gradient-to-br from-blue-900/50 to-blue-950/50 border-2 border-blue-500 glow-blue' : 'bg-gradient-to-br from-red-900/50 to-red-950/50 border-2 border-red-500 glow-red' %>">
+    <% 
+      winner_class = case game.winning_team
+      when 'blue' then 'bg-gradient-to-br from-blue-900/50 to-blue-950/50 border-2 border-blue-500 glow-blue'
+      when 'red' then 'bg-gradient-to-br from-red-900/50 to-red-950/50 border-2 border-red-500 glow-red'
+      when 'green' then 'bg-gradient-to-br from-green-900/50 to-green-950/50 border-2 border-green-500'
+      else 'bg-gradient-to-br from-slate-800/50 to-slate-950/50 border-2 border-slate-500'
+      end
+      
+      winner_text_class = case game.winning_team
+      when 'blue' then 'text-blue-400'
+      when 'red' then 'text-red-400'
+      when 'green' then 'text-green-400'
+      else 'text-slate-400'
+      end
+      
+      winner_icon = case game.winning_team
+      when 'blue' then '🔵 TIME AZUL'
+      when 'red' then '🔴 TIME VERMELHO'
+      when 'green' then '🟢 TIME VERDE'
+      else '⚫ TIME PRETO'
+      end
+    %>
+    <div class="rounded-2xl p-6 text-center <%= winner_class %>">
       <p class="text-slate-400 text-sm mb-2">Time Vencedor</p>
-      <h2 class="font-display text-2xl font-bold <%= game.winning_team == 'blue' ? 'text-blue-400' : 'text-red-400' %>">
-        <%= game.winning_team == 'blue' ? '🔵 TIME AZUL' : '🔴 TIME VERMELHO' %>
+      <h2 class="font-display text-2xl font-bold <%= winner_text_class %>">
+        <%= winner_icon %>
       </h2>
     </div>
   </div>
@@ -35,7 +104,6 @@
   <div class="w-full max-w-sm mb-8">
     <h3 class="text-lg font-bold text-white mb-4 text-center">Revelação dos Papéis</h3>
 
-    <% president = game.players.find_by(role: 'president') %>
     <% bomber = game.players.find_by(role: 'bomber') %>
 
     <div class="space-y-3 mb-4">
@@ -58,6 +126,20 @@
         </div>
         <span class="text-slate-400 text-sm">Sala <%= bomber&.room %></span>
       </div>
+
+      <!-- Roles especiais revelados -->
+      <% special_roles = game.players.where.not(role: ['president', 'bomber', 'regular', 'citizen_blue', 'citizen_red']) %>
+      <% special_roles.each do |p| %>
+        <% next if p.role == 'president' || p.role == 'bomber' %>
+        <div class="flex items-center gap-3 bg-slate-800/30 border border-slate-600/30 rounded-xl px-4 py-3">
+          <span class="text-2xl"><%= p.role_icon %></span>
+          <div class="flex-1">
+            <p class="font-semibold text-slate-300"><%= p.role_name %></p>
+            <p class="text-white text-sm"><%= p.name %></p>
+          </div>
+          <span class="text-slate-500 text-xs">S<%= p.room %></span>
+        </div>
+      <% end %>
     </div>
 
     <% if president&.room == bomber&.room %>
@@ -73,14 +155,24 @@
 
   <!-- Seu papel -->
   <div class="w-full max-w-sm mb-8">
-    <div class="rounded-2xl p-4 text-center
-      <%= player.team == 'blue' ? 'bg-blue-900/20 border border-blue-500/30' : 'bg-red-900/20 border border-red-500/30' %>">
+    <div class="rounded-2xl p-4 text-center <%= player.card_background_class.gsub('glow-', '') %>">
       <p class="text-slate-400 text-sm mb-1">Seu papel era</p>
       <div class="flex items-center justify-center gap-2">
         <span class="text-2xl"><%= player.role_icon %></span>
         <span class="font-bold text-white"><%= player.role_name %></span>
-        <span class="text-sm <%= player.team == 'blue' ? 'text-blue-400' : 'text-red-400' %>">(Time <%= player.team_name %>)</span>
+        <span class="text-sm <%= player.team_badge_class %>">(Time <%= player.team_name %>)</span>
       </div>
+      
+      <% if player.is_infected? %>
+        <p class="text-green-400 text-xs mt-2">🧟 Você foi infectado durante o jogo!</p>
+      <% end %>
+      
+      <% if player.role == 'gambler' && player.gambler_guess.present? %>
+        <p class="text-purple-400 text-xs mt-2">
+          🎰 Você apostou no time <%= player.gambler_guess == 'blue' ? 'Azul' : 'Vermelho' %>
+          <%= player.gambler_guess == game.winning_team ? '- ACERTOU!' : '- errou' %>
+        </p>
+      <% end %>
     </div>
   </div>
 
@@ -91,7 +183,8 @@
     <div class="grid grid-cols-2 gap-2">
       <% game.players.order(:room, :team).each do |p| %>
         <div class="flex items-center gap-2 bg-slate-800/30 rounded-lg px-3 py-2 text-sm
-          <%= p.id == player.id ? 'border border-amber-500/50' : '' %>">
+          <%= p.id == player.id ? 'border border-amber-500/50' : '' %>
+          <%= p.is_infected? ? 'border-l-2 border-l-green-500' : '' %>">
           <span><%= p.role_icon %></span>
           <span class="text-white truncate flex-1"><%= p.name %></span>
           <span class="text-slate-500 text-xs">S<%= p.room %></span>
@@ -107,4 +200,3 @@
     <% end %>
   </div>
 </div>
-

@@ -1,0 +1,23 @@
+<p class="text-slate-300 text-sm mb-3">
+  Escolha dois jogadores para serem seus "filhos". Você ganha se eles estiverem na mesma sala no final!
+</p>
+<%= form_with url: ability_game_path(game, ability: 'adopt'), method: :post, class: "space-y-3" do %>
+  <div class="space-y-2">
+    <select name="child1_id" class="w-full px-4 py-3 bg-slate-800 border border-slate-600 rounded-lg text-white">
+      <option value="">Primeiro filho...</option>
+      <% game.players.where.not(id: player.id).each do |p| %>
+        <option value="<%= p.id %>"><%= p.name %></option>
+      <% end %>
+    </select>
+    <select name="child2_id" class="w-full px-4 py-3 bg-slate-800 border border-slate-600 rounded-lg text-white">
+      <option value="">Segundo filho...</option>
+      <% game.players.where.not(id: player.id).each do |p| %>
+        <option value="<%= p.id %>"><%= p.name %></option>
+      <% end %>
+    </select>
+  </div>
+  <button type="submit" class="w-full py-3 bg-amber-600 hover:bg-amber-500 text-white font-bold rounded-lg transition-all">
+    👨‍👧‍👦 Adotar Filhos
+  </button>
+<% end %>
+
