@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2025_12_24_233512) do
+ActiveRecord::Schema[8.1].define(version: 2025_12_24_233514) do
   create_table "card_shares", force: :cascade do |t|
     t.datetime "created_at", null: false
     t.integer "from_player_id", null: false
@@ -30,6 +30,7 @@ ActiveRecord::Schema[8.1].define(version: 2025_12_24_233512) do
     t.string "code", null: false
     t.datetime "created_at", null: false
     t.integer "current_round", default: 0
+    t.text "gargoyle_pending_decisions"
     t.string "role_selection_mode", default: "manual"
     t.datetime "round_ends_at"
     t.datetime "round_started_at"

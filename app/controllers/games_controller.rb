@@ -1,6 +1,6 @@
 class GamesController < ApplicationController
   before_action :require_player!
-  before_action :set_game, only: [:show, :start, :select_leader, :usurp_leadership, :select_hostages, :exchange, :ability]
+  before_action :set_game, only: [:show, :start, :select_leader, :usurp_leadership, :select_hostages, :gargoyle_decision, :exchange, :ability]
 
   def new
     @game = Game.new
@@ -133,68 +133,80 @@ class GamesController < ApplicationController
       redirect_to @game, alert: 'Apenas o líder pode selecionar reféns.'
       return
     end
-
-    hostage_ids = params[:hostage_ids] || []
+  
+    hostage_ids = params[:hostage_ids] || [].reject(&:blank?)
     
-    # 1. Define quantos são necessários
     my_room_players = @game.players.where(room: current_player.room)
-    required = my_room_players.count > 1 ? @game.hostages_for_current_round : 0
-
-    # 2. Validação: O líder PRECISA selecionar a quantidade cheia (mesmo que tenha gárgula no meio)
-    if hostage_ids.size != required
+    is_leader_alone = my_room_players.count <= 1
+    required = !is_leader_alone ? @game.hostages_for_current_round : 0
+  
+    if hostage_ids.size != required && !is_leader_alone
       redirect_to @game, alert: "Selecione exatamente #{required} refém(s)."
       return
     end
-
-    # 3. Limpa seleções anteriores
+  
     my_room_players.update_all(is_hostage: false)
-
-    # 4. TRUQUE: Salvamos TODOS como reféns (inclusive a Gárgula)
-    # Isso é necessário para que a flag 'r1_ready' lá embaixo dê 'true'.
-    if hostage_ids.any?
+  
+    if hostage_ids.any? && !is_leader_alone
       @game.players.where(id: hostage_ids).update_all(is_hostage: true)
     end
-
-    # 5. Verifica se tem Gárgula apenas para mostrar a mensagem
-    gargoyles = @game.players.where(id: hostage_ids).select { |p| p.role == 'gargoyle' }
-
-    if gargoyles.any?
-      names = gargoyles.map(&:name).join(", ")
-      flash[:alert] = "🛡️ HABILIDADE ATIVADA: #{names} é uma Gárgula e ficará na sala! O time perdeu esse slot de troca."
+  
+    # Verifica gárgulas que podem recusar (ability_used = false)
+    gargoyles_needing_decision = @game.players.where(id: hostage_ids)
+      .select { |p| p.role&.include?('gargoyle') && !p.ability_used? }
+    
+    if gargoyles_needing_decision.any?
+      pending = @game.parsed_gargoyle_pending || {}
+      gargoyles_needing_decision.each do |g|
+        pending[g.id.to_s] = nil  # nil = ainda não decidiu
+      end
+      @game.update!(gargoyle_pending_decisions: pending.to_json)
+      
+      flash[:notice] = "Aguardando decisão do(s) Gárgula(s)..."
     else
+      # Gárgulas que já usaram habilidade vão automaticamente
       flash[:notice] = "Reféns confirmados. Aguardando a outra sala..."
     end
-
-    # 6. Tenta executar a troca
-    @game.reload
+  
+    try_execute_exchange!
     
-    # Verifica Sala 1 (Usa a contagem bruta do banco, incluindo gárgulas marcadas)
-    r1_total = @game.room_1_players.count
-    r1_req = r1_total > 1 ? @game.hostages_for_current_round : 0
-    r1_ready = @game.room_1_players.where(is_hostage: true).count == r1_req
+    broadcast_game_update
+    redirect_to @game
+  end
 
-    # Verifica Sala 2
-    r2_total = @game.room_2_players.count
-    r2_req = r2_total > 1 ? @game.hostages_for_current_round : 0
-    r2_ready = @game.room_2_players.where(is_hostage: true).count == r2_req
-
-    if r1_ready && r2_ready
-      # AQUI ACONTECE A MÁGICA
-      # Recuperamos os reféns marcados
-      hostages_1 = @game.room_1_players.where(is_hostage: true)
-      hostages_2 = @game.room_2_players.where(is_hostage: true)
-
-      # FILTRAMOS AS GÁRGULAS ANTES DE MANDAR PARA O MÉTODO DE TROCA
-      # Elas estão marcadas como hostage (para contar como 'pronto'), mas não serão enviadas.
-      ids_to_move_1 = hostages_1.reject { |p| p.role == 'gargoyle' }.map(&:id)
-      ids_to_move_2 = hostages_2.reject { |p| p.role == 'gargoyle' }.map(&:id)
-      
-      @game.exchange_hostages!(ids_to_move_1, ids_to_move_2)
-      
-      # Opcional: Limpar o status de hostage da gárgula após a troca para não confundir na próxima rodada
-      # (Se o seu método exchange_hostages! já reseta tudo no final, não precisa fazer nada aqui)
+  def gargoyle_decision
+    unless current_player.role&.include?('gargoyle')
+      redirect_to @game, alert: 'Apenas gárgulas podem usar isso.'
+      return
     end
-
+  
+    unless current_player.is_hostage?
+      redirect_to @game, alert: 'Você não foi selecionado como refém.'
+      return
+    end
+  
+    decision = params[:decision] # 'accept' ou 'refuse'
+    
+    pending = @game.parsed_gargoyle_pending || {}
+    
+    if decision == 'refuse'
+      if current_player.ability_used?
+        redirect_to @game, alert: 'Você já usou sua habilidade de recusa!'
+        return
+      end
+      
+      pending[current_player.id.to_s] = 'refused'
+      current_player.update!(ability_used: true)
+      flash[:notice] = '🗿 Você recusou ir como refém! Ficará na sala.'
+    else
+      pending[current_player.id.to_s] = 'accepted'
+      flash[:notice] = 'Você aceitou ir como refém.'
+    end
+    
+    @game.update!(gargoyle_pending_decisions: pending.to_json)
+    
+    try_execute_exchange!
+    
     broadcast_game_update
     redirect_to @game
   end
@@ -277,6 +289,52 @@ class GamesController < ApplicationController
   end
 
   private
+
+  def try_execute_exchange!
+    @game.reload
+    
+    # Verifica se ainda há gárgulas pendentes de decisão
+    pending = @game.parsed_gargoyle_pending || {}
+    if pending.values.any?(&:nil?)
+      return # Ainda há gárgulas que não decidiram
+    end
+    
+    # Verifica se ambas as salas confirmaram seus reféns
+    r1_total = @game.room_1_players.count
+    r1_req = r1_total > 1 ? @game.hostages_for_current_round : 0
+    r1_ready = @game.room_1_players.where(is_hostage: true).count == r1_req
+
+    r2_total = @game.room_2_players.count
+    r2_req = r2_total > 1 ? @game.hostages_for_current_round : 0
+    r2_ready = @game.room_2_players.where(is_hostage: true).count == r2_req
+
+    return unless r1_ready && r2_ready
+
+    hostages_1 = @game.room_1_players.where(is_hostage: true)
+    hostages_2 = @game.room_2_players.where(is_hostage: true)
+
+    # Filtra gárgulas que recusaram
+    ids_to_move_1 = hostages_1.reject do |p|
+      if p.role&.include?('gargoyle')
+        pending[p.id.to_s] == 'refused'
+      else
+        false
+      end
+    end.map(&:id)
+
+    ids_to_move_2 = hostages_2.reject do |p|
+      if p.role&.include?('gargoyle')
+        pending[p.id.to_s] == 'refused'
+      else
+        false
+      end
+    end.map(&:id)
+    
+    # Limpa as decisões pendentes
+    @game.update!(gargoyle_pending_decisions: nil)
+    
+    @game.exchange_hostages!(ids_to_move_1, ids_to_move_2)
+  end
 
   def handle_usurp_ability
     unless current_player.role&.include?('usurper')

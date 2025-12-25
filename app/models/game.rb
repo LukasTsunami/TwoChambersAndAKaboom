@@ -97,6 +97,11 @@ class Game < ApplicationRecord
     players.find_by(room: 2, is_leader: true)
   end
 
+  def parsed_gargoyle_pending
+    return {} if gargoyle_pending_decisions.blank?
+    JSON.parse(gargoyle_pending_decisions) rescue {}
+  end
+
   def parsed_selected_roles
     return [] if selected_roles.blank?
     JSON.parse(selected_roles) rescue []

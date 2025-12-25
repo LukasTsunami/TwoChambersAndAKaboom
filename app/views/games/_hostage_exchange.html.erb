@@ -1,8 +1,16 @@
 <%
 usurp_message = game.usurp_message
 
-usurp_message_1 = usurp_message.split('!')[0]
-usurp_message_2 = usurp_message.split('!')[1]
+usurp_message_1 = usurp_message&.split('!')[0] if usurp_message&.present?
+usurp_message_2 = usurp_message&.split('!')[1] if usurp_message&.present?
+
+room_players = game.players.where(room: player.room)
+current_hostages = room_players.where(is_hostage: true)
+required_hostages = game.hostages_for_current_round
+
+is_leader = player.is_leader
+is_leader_alone = room_players.count <= 1
+leader_already_confirmed = is_leader_alone || (current_hostages.count == required_hostages && required_hostages > 0)
 %>
 
 <div class="flex-1 flex flex-col px-4 py-6">
@@ -15,7 +23,7 @@ usurp_message_2 = usurp_message.split('!')[1]
   </div>
 
   <div id="game_notifications">
-    <% if game.usurp_message.present? %>
+    <% if game.usurp_message&.present? %>
       <div class="mb-6 mx-auto max-w-sm animate-[fadeIn_0.5s_ease-out]">
         <div class="bg-purple-500/20 border border-purple-500/30 rounded-xl p-4 mb-4 text-center">
           <div class="text-3xl mb-2">🗡️👑</div>
@@ -44,13 +52,6 @@ usurp_message_2 = usurp_message.split('!')[1]
     </div>
   </div>
 
-  <% is_leader = player.is_leader %>
-  <% room_players = game.players.where(room: player.room) %>
-  <% current_hostages = room_players.where(is_hostage: true) %>
-  <% required_hostages = game.hostages_for_current_round %>
-  
-  <% leader_already_confirmed = current_hostages.count == required_hostages && required_hostages > 0 %>
-  
   <% if is_leader %>
     <div class="flex-1">
       <% if leader_already_confirmed %>
@@ -160,33 +161,108 @@ usurp_message_2 = usurp_message.split('!')[1]
       <% end %>
     </div>
 
-  <% elsif player.role&.include?('gargoyle') && room_players.size == 1 %>
-    <div class="bg-amber-500/10 border border-amber-500/30 rounded-xl p-4 mb-4">
-      <p class="text-amber-400 font-semibold text-center">
-        👑 Você é uma Gárgula! Você não pode ser mandado como refém.
-      </p>
-    </div>
-    <div class="flex-1 flex flex-col items-center justify-center">
-      <div class="bg-gradient-to-br from-purple-500/10 to-pink-500/10 border border-purple-500/30 rounded-2xl p-8 text-center max-w-sm">
-        <div class="text-6xl mb-4">🤝</div>
-        <h3 class="font-display text-xl font-bold text-purple-400 mb-3">Negociação em Andamento</h3>
-        <p class="text-slate-400 mb-4">
-          Os líderes estão negociando a troca de reféns entre as salas.
-        </p>
-        <div class="flex items-center justify-center gap-2 text-slate-500">
-          <div class="animate-pulse">⏳</div>
-          <span class="text-sm">Aguarde a conclusão...</span>
+  <% elsif player.role&.include?('gargoyle') %>
+    <% pending = game.parsed_gargoyle_pending || {} %>
+    <% my_decision = pending[player.id.to_s] %>
+    <% was_selected_as_hostage = player.is_hostage? %>
+    
+    <% if was_selected_as_hostage && my_decision.nil? && !player.ability_used? %>
+      <%# GÁRGULA FOI SELECIONADO E PRECISA DECIDIR %>
+      <div class="flex-1 flex flex-col items-center justify-center">
+        <div class="bg-gradient-to-br from-amber-900/40 to-slate-900/40 border-2 border-amber-500/50 rounded-2xl p-6 text-center max-w-sm mb-6 shadow-[0_0_30px_rgba(245,158,11,0.2)] animate-pulse">
+          <div class="text-5xl mb-4">🗿⚡</div>
+          
+          <h3 class="font-display text-xl font-bold text-white mb-2">Você foi escolhido como refém!</h3>
+          <p class="text-slate-300 text-sm mb-4">
+            Como <strong>Gárgula</strong>, você pode <strong>recusar</strong> ir para a outra sala. 
+            <span class="text-amber-400">Esta habilidade só pode ser usada UMA VEZ no jogo!</span>
+          </p>
+          
+          <div class="space-y-3">
+            <%= form_with url: gargoyle_decision_game_path(game), method: :post, class: "inline" do %>
+              <input type="hidden" name="decision" value="accept">
+              <button type="submit" class="w-full py-3 bg-gradient-to-r from-green-600 to-green-700 hover:from-green-500 hover:to-green-600 text-white font-bold rounded-xl transition-all">
+                ✅ Aceitar ir como refém
+              </button>
+            <% end %>
+            
+            <%= form_with url: gargoyle_decision_game_path(game), method: :post, class: "inline" do %>
+              <input type="hidden" name="decision" value="refuse">
+              <button type="submit" class="w-full py-3 bg-gradient-to-r from-red-600 to-red-700 hover:from-red-500 hover:to-red-600 text-white font-bold rounded-xl transition-all mt-2">
+                🗿 RECUSAR - Usar Habilidade (1x)
+              </button>
+            <% end %>
+          </div>
         </div>
       </div>
-
-      <div class="mt-6 bg-slate-800/30 rounded-xl p-4 text-center">
-        <p class="text-slate-400 text-sm mb-1">Líder da sua sala:</p>
-        <% my_leader = room_players.find_by(is_leader: true) %>
-        <% if my_leader %>
-          <p class="text-amber-400 font-semibold">👑 <%= my_leader.name %></p>
-        <% end %>
+      
+    <% elsif was_selected_as_hostage && my_decision == 'refused' %>
+      <%# GÁRGULA RECUSOU %>
+      <div class="flex-1 flex flex-col items-center justify-center">
+        <div class="bg-green-500/10 border border-green-500/30 rounded-2xl p-8 text-center max-w-sm">
+          <div class="text-6xl mb-4">🗿✅</div>
+          <h3 class="font-display text-xl font-bold text-green-400 mb-3">Você ficará na sala!</h3>
+          <p class="text-slate-400 mb-4">
+            Você usou sua habilidade de Gárgula e não será enviado como refém.
+          </p>
+          <div class="flex items-center justify-center gap-2 text-slate-500">
+            <div class="animate-pulse">⏳</div>
+            <span class="text-sm">Aguardando a troca...</span>
+          </div>
+        </div>
       </div>
-    </div>
+      <div data-controller="refresh" data-refresh-interval-value="2000" data-refresh-url-value="<%= game_path(game) %>"></div>
+      
+    <% elsif was_selected_as_hostage && my_decision == 'accepted' %>
+      <%# GÁRGULA ACEITOU IR %>
+      <div class="flex-1 flex flex-col items-center justify-center">
+        <div class="bg-purple-500/10 border border-purple-500/30 rounded-2xl p-8 text-center max-w-sm">
+          <div class="text-6xl mb-4">🗿➡️</div>
+          <h3 class="font-display text-xl font-bold text-purple-400 mb-3">Você aceitou ir!</h3>
+          <p class="text-slate-400 mb-4">
+            Você será enviado para a outra sala como refém.
+          </p>
+          <div class="flex items-center justify-center gap-2 text-slate-500">
+            <div class="animate-pulse">⏳</div>
+            <span class="text-sm">Aguardando a troca...</span>
+          </div>
+        </div>
+      </div>
+      <div data-controller="refresh" data-refresh-interval-value="2000" data-refresh-url-value="<%= game_path(game) %>"></div>
+      
+    <% else %>
+      <%# GÁRGULA NÃO FOI SELECIONADO OU JÁ USOU HABILIDADE %>
+      <div class="bg-amber-500/10 border border-amber-500/30 rounded-xl p-4 mb-4">
+        <p class="text-amber-400 font-semibold text-center">
+          🗿 Você é uma Gárgula! 
+          <% if player.ability_used? %>
+            <span class="text-red-400">(Habilidade já usada)</span>
+          <% end %>
+        </p>
+      </div>
+      <div class="flex-1 flex flex-col items-center justify-center">
+        <div class="bg-gradient-to-br from-purple-500/10 to-pink-500/10 border border-purple-500/30 rounded-2xl p-8 text-center max-w-sm">
+          <div class="text-6xl mb-4">🤝</div>
+          <h3 class="font-display text-xl font-bold text-purple-400 mb-3">Negociação em Andamento</h3>
+          <p class="text-slate-400 mb-4">
+            Os líderes estão negociando a troca de reféns entre as salas.
+          </p>
+          <div class="flex items-center justify-center gap-2 text-slate-500">
+            <div class="animate-pulse">⏳</div>
+            <span class="text-sm">Aguarde a conclusão...</span>
+          </div>
+        </div>
+
+        <div class="mt-6 bg-slate-800/30 rounded-xl p-4 text-center">
+          <p class="text-slate-400 text-sm mb-1">Líder da sua sala:</p>
+          <% my_leader = room_players.find_by(is_leader: true) %>
+          <% if my_leader %>
+            <p class="text-amber-400 font-semibold">👑 <%= my_leader.name %></p>
+          <% end %>
+        </div>
+      </div>
+      <div data-controller="refresh" data-refresh-interval-value="2000" data-refresh-url-value="<%= game_path(game) %>"></div>
+    <% end %>
 
   <% elsif player.role&.include?('usurper') %>
     <div class="flex-1 flex flex-col items-center justify-center">
